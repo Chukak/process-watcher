@@ -1,0 +1,4 @@
+#ifndef __TESTING_GLOBALS_H
+#define __TESTING_GLOBALS_H
+
+#endif // __TESTING_GLOBALS_H

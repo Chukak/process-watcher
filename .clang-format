@@ -1,0 +1,48 @@
+#BasedOnStyle: Google
+Language: Cpp
+AlignAfterOpenBracket: Align
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterEnum: true
+    AfterStruct: true
+    AfterFunction: true
+    AfterExternBlock: true
+    BeforeElse: false
+    IndentBraces: false
+    SplitEmptyFunction: false
+    SplitEmptyRecord: true
+BreakBeforeTernaryOperators: true
+ColumnLimit: 120
+DerivePointerAlignment: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^".*'
+    Priority:        0
+  - Regex:           '^<.*/.*\.h>'
+    Priority:        1
+  - Regex:           '^<.*'
+    Priority:        2
+# IncludeIsMainRegex:
+IndentCaseLabels: false
+IndentPPDirectives: None
+IndentWidth: 2
+IndentWrappedFunctionNames: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+PenaltyBreakBeforeFirstCallParameter: 100
+PointerAlignment: Right
+ReflowComments: true
+SortIncludes: false
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+UseTab: Never
