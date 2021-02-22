@@ -5,11 +5,11 @@ project(system-watcher LANGUAGES C)
 set(SOURCE_FILES
     src/main.c
     src/system-watcher-globals.c
-    )
+    src/process.c)
 set(PRIVATE_HEADER_FILES
     src/system-watcher-globals.h)
 set(PUBLIC_HEADER_FILES
-    )
+    include/process.h)
 
 set(C_PROJECT_COMPILE_FLAGS
     -Wextra -Wall -Wshadow -Wcast-align -Wwrite-strings -Wuninitialized -std=gnu11)
@@ -44,7 +44,8 @@ if (TESTS_ENABLED)
     set(TEST_SOURCE_FILES
         tests/main.c
         tests/testing-globals.c
-        tests/test-system-watcher-globals.c)
+        tests/test-system-watcher-globals.c
+        tests/test-process.c)
     set(TEST_HEADER_FILES
         tests/testing-globals.h)
 
