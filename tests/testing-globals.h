@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 
 // detects filename without full path.
 #define __DETECT_FILENAME() strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
@@ -231,5 +232,14 @@ __attribute__((nothrow)) void __testing_globals_print_fail_info(const char* varn
  * The same macro as 'CHECK_NE', only for strings.
  */
 #define CHECK_STR_NE(arg1, arg2) __CHECK_ANY(arg1, arg2, STRINGS_ARE_NOT_EQUAL(arg1, arg2), "not equal")
+
+#define SLEEP_SEC(n)                                                                                                   \
+  {                                                                                                                    \
+    printf("Waiting for delay (%d sec)...", n);                                                                        \
+    fflush(stdout);                                                                                                    \
+    sleep(n);                                                                                                          \
+    printf("done!\n");                                                                                                 \
+    fflush(stdout);                                                                                                    \
+  }
 
 #endif // __TESTING_GLOBALS_H
