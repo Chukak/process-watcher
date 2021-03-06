@@ -1,5 +1,5 @@
-#ifndef WINDOW_H
-#define WINDOW_H
+#ifndef __WINDOW_H
+#define __WINDOW_H
 
 #include <ncurses.h>
 #include "../include/process.h"
@@ -33,4 +33,4 @@ __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_sta
  */
 __attribute__((nothrow)) void Window_destroy(Window* win);
 
-#endif // WINDOW_H
+#endif // __WINDOW_H

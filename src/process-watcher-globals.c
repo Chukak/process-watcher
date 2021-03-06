@@ -1,4 +1,4 @@
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 
 #include <unistd.h>
 #include <stdarg.h>

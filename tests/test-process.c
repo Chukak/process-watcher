@@ -1,7 +1,7 @@
 #include "testing-globals.h"
 
 #include "process.h"
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 
 #include <stdio.h>
 #include <stdlib.h>

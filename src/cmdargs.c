@@ -1,5 +1,5 @@
 #include "cmdargs.h"
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 
 #include <stdlib.h>
 #include <string.h>

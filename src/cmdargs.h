@@ -1,5 +1,5 @@
-#ifndef CMDARGS_H
-#define CMDARGS_H
+#ifndef __CMDARGS_H
+#define __CMDARGS_H
 
 #include <stdbool.h>
 
@@ -36,4 +36,4 @@ __attribute__((nothrow)) void Cmd_args_free(Cmd_args* args);
  */
 __attribute__((nothrow)) void print_help();
 
-#endif // CMDARGS_H
+#endif // __CMDARGS_H

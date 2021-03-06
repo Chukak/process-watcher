@@ -1,5 +1,5 @@
-#ifndef __SYSTEM_WATCHER_GLOBALS_H
-#define __SYSTEM_WATCHER_GLOBALS_H
+#ifndef __PROCESS_WATCHER_GLOBALS_H
+#define __PROCESS_WATCHER_GLOBALS_H
 
 /**
  * @brief UNUSED
@@ -91,4 +91,4 @@ __attribute__((nothrow)) void itostr(int n, char** dst);
 __attribute__((nothrow)) void
 strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count);
 
-#endif // __SYSTEM_WATCHER_GLOBALS_H
+#endif // __PROCESS_WATCHER_GLOBALS_H

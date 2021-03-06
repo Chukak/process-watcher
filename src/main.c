@@ -1,4 +1,4 @@
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 #include "window.h"
 #include "process.h"
 #include "cmdargs.h"

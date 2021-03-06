@@ -1,6 +1,6 @@
 #include "process.h"
 
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 
 #include <dirent.h>
 #include <stdlib.h>

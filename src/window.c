@@ -1,5 +1,5 @@
 #include "window.h"
-#include "system-watcher-globals.h"
+#include "process-watcher-globals.h"
 
 #include <string.h>
 #include <stdlib.h>

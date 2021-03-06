@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 
-project(system-watcher LANGUAGES C)
+project(process-watcher LANGUAGES C)
 
 find_library(NCURSES_LIBRARIES
     NAMES ncurses
@@ -8,12 +8,12 @@ find_library(NCURSES_LIBRARIES
 
 set(SOURCE_FILES
     src/main.c
-    src/system-watcher-globals.c
+    src/process-watcher-globals.c
     src/process.c
     src/window.c
     src/cmdargs.c)
 set(PRIVATE_HEADER_FILES
-    src/system-watcher-globals.h
+    src/process-watcher-globals.h
     src/window.h
     src/cmdargs.h)
 set(PUBLIC_HEADER_FILES
@@ -51,7 +51,7 @@ if (TESTS_ENABLED)
     set(TEST_SOURCE_FILES
         tests/main.c
         tests/testing-globals.c
-        tests/test-system-watcher-globals.c
+        tests/test-process-watcher-globals.c
         tests/test-process.c
         tests/test-cmdargs.c)
     set(TEST_HEADER_FILES
