@@ -2,6 +2,11 @@
 
 #include "cmdargs.h"
 
+#include <unistd.h>
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
 TEST_CASE(Cmd_args, CorrectCommandLineArguments)
 {
   {
@@ -62,6 +67,12 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
     Cmd_args_free(args);
   }
   {
+    // redirect printf to /dev/null
+    int cachefd = dup(fileno(stdout));
+    int fd = open("/dev/null", O_WRONLY);
+    dup2(fd, fileno(stdout));
+    close(fd);
+
     int argc = 1;
     char *argv[] = {(char *) "."};
 
@@ -73,5 +84,9 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
     CHECK_EQ(args->Refresh_timeout_ms, -1);
 
     Cmd_args_free(args);
+
+    fflush(stdout);
+    dup2(cachefd, fileno(stdout));
+    close(cachefd);
   }
 }
