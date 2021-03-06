@@ -23,7 +23,7 @@ __attribute__((nothrow)) Window* Window_init();
  * @brief Window_refresh
  * Refresh the main window with data.
  * @param win The pointer to the Window structure
- * @param proc_stat THe pointer to the Process_stat structure
+ * @param proc_stat The pointer to the Process_stat structure
  */
 __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_stat);
 /**
