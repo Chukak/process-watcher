@@ -117,7 +117,7 @@ TEST_CASE(String, IntToString)
 TEST_CASE(File, FileReadAll)
 {
   const char *testfilename = "testfile.txt";
-  const char *testfiledata = "Testing data\n";
+  const char *testfiledata = "Testing data\nTesting data 3\n Testing data 3\n";
 
   FILE *testfile = fopen(testfilename, "w");
   assert(testfile != NULL);
@@ -126,6 +126,24 @@ TEST_CASE(File, FileReadAll)
   {
     char *array;
     CHECK_GT(freadall(testfilename, &array), 0);
+    CHECK_STR_EQ(array, testfiledata);
+    free(array);
+  }
+  remove(testfilename);
+}
+
+TEST_CASE(File, FileGetAll)
+{
+  const char *testfilename = "testfile.txt";
+  const char *testfiledata = "Testing data\nTesting data 2\nTesting data 3\n";
+
+  FILE *testfile = fopen(testfilename, "w");
+  assert(testfile != NULL);
+  assert(fprintf(testfile, "%s", testfiledata) > 0);
+  assert(fclose(testfile) == 0);
+  {
+    char *array;
+    CHECK_GT(fgetall(testfilename, &array), 0);
     CHECK_STR_EQ(array, testfiledata);
     free(array);
   }

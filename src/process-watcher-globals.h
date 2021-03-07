@@ -36,7 +36,7 @@ __attribute__((nothrow)) void strconcat(char** dst, int count, ...);
 /**
  * @brief freadall
  * Reads all data from file. This functions dynamically allocates a char array for the data
- * from the file.
+ * from the file. This function uses a precalculation of the file length before reading the data.
  *
  * If dynamic allocate memory is not possible, this function do nothing.
  *
@@ -51,7 +51,7 @@ __attribute__((nothrow)) void strconcat(char** dst, int count, ...);
  * @param dst The array to store data
  * @return Number of bytes read
  */
-__attribute__((nothrow)) int freadall(const char* filename, char** dst);
+__attribute__((nothrow)) long long freadall(const char* filename, char** dst);
 /**
  * @brief itostr
  * Convert an integer number to string. This function dynamically allocates a char array for the store integer.
@@ -90,5 +90,24 @@ __attribute__((nothrow)) void itostr(int n, char** dst);
  */
 __attribute__((nothrow)) void
 strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count);
+/**
+ * @brief fgetall
+ * Reads all data from file. This functions dynamically allocates a char array for the data
+ * from the file. This function read data until EOF or error occurs.
+ *
+ * If dynamic allocate memory is not possible, this function do nothing.
+ *
+ * @code
+ * char *dst = NULL;
+ * fgetall("filename.txt", &dst);
+ * // ...
+ * free(dst);
+ * @endcode
+ *
+ * @param filename The name of file
+ * @param dst The array to store data
+ * @return Number of bytes read or -1 if the file was not opened
+ */
+__attribute__((nothrow)) long long fgetall(const char* filename, char** dst);
 
 #endif // __PROCESS_WATCHER_GLOBALS_H

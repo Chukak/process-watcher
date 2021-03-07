@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+static const int SMALL_BUFFER_SIZE = 128;
+
 __attribute__((nothrow)) static void strrecreate(char **dst)
 {
   char *tmp = malloc(1 * sizeof(char));
@@ -44,9 +46,9 @@ __attribute__((nothrow)) void strconcat(char **dst, int count, ...)
   *dst = array;
 }
 
-__attribute__((nothrow)) int freadall(const char *filename, char **dst)
+__attribute__((nothrow)) long long freadall(const char *filename, char **dst)
 {
-  size_t bytes = 0, length = 0;
+  long long bytes = 0, length = 0;
   FILE *file = fopen(filename, "r");
   if (file) {
     do {
@@ -129,4 +131,30 @@ __attribute__((nothrow)) void strreplace(const char *src, char **dst, const char
   }
 
   *dst = newstr;
+}
+
+__attribute__((nothrow)) long long fgetall(const char *filename, char **dst)
+{
+  long long bytes = 0;
+  FILE *file = fopen(filename, "r");
+  if (file) {
+    char *array = NULL;
+    char buffer[SMALL_BUFFER_SIZE];
+    while (fgets(buffer, sizeof(buffer), file)) {
+      size_t length = strlen(buffer);
+      if (strrealloc(&array, bytes + length) != 0)
+        break;
+      strncpy(array + bytes, buffer, length);
+      bytes += length;
+    }
+
+    if (array) {
+      array[bytes] = '\0';
+      *dst = array;
+    }
+    fclose(file);
+  } else
+    bytes = -1;
+
+  return bytes;
 }
