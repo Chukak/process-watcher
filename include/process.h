@@ -15,23 +15,28 @@ __attribute__((nothrow)) int pid_by_name(const char* name);
 /**
  * @brief Process_stat
  * Stores the information about the running process from '/proc/[pid]' directory. Contains PID, the process name, state,
- * priority, CPU and memory usage.
+ * priority, CPU, memory and time usage.
  * Also, this structure contains private fields with the '__' prefix. Do not use it.
  *
  * For more informations, check this page https://man7.org/linux/man-pages/man5/proc.5.html
  */
 typedef struct
 {
-  int Pid;             //! PID of the running process
-  char* Process_name;  //! The process name
-  char State;          //! State. (a default state = 'U' - Unknown)
-  long int Priority;   //! Priority
-  double Cpu_usage;    //! CPU usage
-  double Memory_usage; //! Memory usage
+  int Pid;              //! PID of the running process
+  char* Process_name;   //! The process name
+  char State;           //! State. (a default state = 'U' - Unknown)
+  char* State_fullname; //! State as string.
+  long int Priority;    //! Priority
+  double Cpu_usage;     //! CPU usage
+  double Memory_usage;  //! Memory usage
+  char* Start_time;     //! Start time
+  char* Time_usage;     //! Work time
   // private fields
   double __last_utime;
   double __last_stime;
   double __last_total;
+  unsigned long __last_starttime;
+  unsigned long __last_btime;
 } Process_stat;
 
 /**

@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
+#include <time.h>
 
 static const char* SYSTEM_PATH_SEPARATOR = "/"; // only linux
 
@@ -21,7 +22,10 @@ static const char* STAT_FILENAME = "stat";
 
 static const int PAGESIZE_DIV_VALUE = 1024;
 
-static const int CACHE_BUFFER_SIZE = 4096;
+static const int STATE_BUFFER_SIZE = 256;
+
+static const char* TIME_FORMAT = "%02d:%02d:%02d";
+static const int TIME_STR_LENGTH = 8;
 
 __attribute__((nothrow)) int pid_by_name(const char* name)
 {
@@ -87,15 +91,28 @@ __attribute__((nothrow)) int pid_by_name(const char* name)
 __attribute__((nothrow)) void Process_stat_init(Process_stat** stat)
 {
   *stat = malloc(sizeof(Process_stat));
+  (*stat)->Process_name = NULL;
   (*stat)->Pid = -1;
   (*stat)->State = 'U'; // Unknown state
+
+  (*stat)->State_fullname = malloc(sizeof(char) * 7 + 1);
+  strcpy((*stat)->State_fullname, "Unknown\0");
+
   (*stat)->Priority = 0;
   (*stat)->Cpu_usage = 0.0;
   (*stat)->Memory_usage = 0.0;
+
+  (*stat)->Start_time = malloc(sizeof(char) * TIME_STR_LENGTH + 1);
+  strcpy((*stat)->Start_time, "00:00:00\0");
+
+  (*stat)->Time_usage = malloc(sizeof(char) * TIME_STR_LENGTH + 1);
+  strcpy((*stat)->Time_usage, "00:00:00\0");
   // private
   (*stat)->__last_utime = 0.0;
   (*stat)->__last_stime = 0.0;
   (*stat)->__last_total = 0.0;
+  (*stat)->__last_starttime = 0;
+  (*stat)->__last_btime = 0;
 }
 
 __attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const char* processname, char** errormsg)
@@ -151,94 +168,146 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
         5,
         SAFE_PASS_VARGS(PROC_DIRECTORY_PATH, SYSTEM_PATH_SEPARATOR, str_pid, SYSTEM_PATH_SEPARATOR, STAT_FILENAME));
 
-    char cache[CACHE_BUFFER_SIZE];
-    FILE* pidstatfile = fopen(pidstatpath, "r");
-    if (pidstatfile) {
-      fgets(cache, CACHE_BUFFER_SIZE - 1, pidstatfile);
-      fclose(pidstatfile);
-    } else {
+    char* pidstatcache = NULL;
+    if (fgetall(pidstatpath, &pidstatcache) == -1) {
       success = false;
       strconcat(errormsg, 4, SAFE_PASS_VARGS("Unable to open file '", pidstatpath, "': ", strerror(errno)));
-    }
-
-    // %*d - skip
-    // count all variables in file - 52
-    // https://man7.org/linux/man-pages/man5/proc.5.html
-    int args_set =
-        sscanf(cache,
-               "%*d "
-               "%*s "
-               "%c " // state
-               "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d "
-               "%lu " // utime
-               "%lu " // stime
-               "%*d %*d "
-               "%ld " // priority
-               "%*d %*d %*d %*d %*d "
-               "%ld " // rss
-               "%*d %*d %*d "
-               "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d",
-               &(*stat)->State,
-               &utimepid,
-               &stimepid,
-               &(*stat)->Priority,
-               &rsspid);
-    if (args_set != 5) {
-      success = false;
-      strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to read data from '/proc/", str_pid, "/stat': Invalid order."));
+    } else {
+      // %*d - skip
+      // count all variables in file - 52
+      // https://man7.org/linux/man-pages/man5/proc.5.html
+      int args_set =
+          sscanf(pidstatcache,
+                 "%*d "
+                 "%*s "
+                 "%c " // state
+                 "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d "
+                 "%lu " // utime
+                 "%lu " // stime
+                 "%*d %*d "
+                 "%ld " // priority
+                 "%*d %*d %*d "
+                 "%lu " // starttime
+                 "%*d "
+                 "%ld " // rss
+                 "%*d %*d %*d "
+                 "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d",
+                 &(*stat)->State,
+                 &utimepid,
+                 &stimepid,
+                 &(*stat)->Priority,
+                 &(*stat)->__last_starttime,
+                 &rsspid);
+      if (args_set != 6) {
+        success = false;
+        strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to read data from '/proc/", str_pid, "/stat': Invalid order."));
+      }
     }
 
     free(pidstatpath);
+    free(pidstatcache);
+  }
+
+  if (success) {
+    char statestr[STATE_BUFFER_SIZE];
+    switch ((*stat)->State) {
+    case 'U':
+      strcpy(statestr, "Unknown");
+      break;
+    case 'R':
+      strcpy(statestr, "Running");
+      break;
+    case 'S':
+      strcpy(statestr, "Sleeping");
+      break;
+    case 'Z':
+      strcpy(statestr, "Zombie");
+      break;
+    case 'T':
+      strcpy(statestr, "Stopped");
+      break;
+    }
+
+    if ((*stat)->State_fullname)
+      free((*stat)->State_fullname);
+
+    (*stat)->State_fullname = malloc(sizeof(char) * strlen(statestr) + 1);
+    strcpy((*stat)->State_fullname, statestr);
   }
 
   if (success) {
     char* statpath = NULL;
     strconcat(&statpath, 3, SAFE_PASS_VARGS(PROC_DIRECTORY_PATH, SYSTEM_PATH_SEPARATOR, STAT_FILENAME));
 
-    char cache[CACHE_BUFFER_SIZE];
-    FILE* statfile = fopen(statpath, "r");
-    if (statfile) {
-      fgets(cache, CACHE_BUFFER_SIZE - 1, statfile);
-      fclose(statfile);
-    } else {
+    char* statcache = NULL;
+    int statcache_len = fgetall(statpath, &statcache);
+    if (statcache_len == -1) {
       success = false;
       strconcat(errormsg, 4, SAFE_PASS_VARGS("Unable to open file '", statpath, "': ", strerror(errno)));
-    }
-    // we need only the first line
-    char* line = strtok(cache, "\r\n");
-    size_t line_len = strlen(line);
-    if (line_len) {
-      size_t total = 0;
-      char* sub = strtok(line, " ");
-      while (sub != NULL) {
-        total += strtoul(sub, NULL, 10);
-        sub = strtok(NULL, " ");
+    } else {
+      // calculate cpu
+      char tmp[statcache_len + 1];
+      strcpy(tmp, statcache); // copy cache
+
+      // we need only the first line
+      char* line = strtok(tmp, "\r\n");
+      size_t line_len = strlen(line);
+      if (line_len) {
+        size_t total = 0;
+        char* sub = strtok(line, " ");
+        while (sub != NULL) {
+          total += strtoul(sub, NULL, 10);
+          sub = strtok(NULL, " ");
+        }
+
+        if (total <= 0) {
+          success = false;
+          strconcat(errormsg, 3, SAFE_PASS_VARGS("Invalid data in the file '", statpath, "'"));
+        } else {
+          // calculate cpu usage
+          double totalCoefficient = total - (*stat)->__last_total;
+          if (totalCoefficient != 0)
+            (*stat)->Cpu_usage = (fabs(100.0 * (utimepid - (*stat)->__last_utime) / totalCoefficient) +
+                                  fabs(100.0 * (stimepid - (*stat)->__last_stime) / totalCoefficient));
+          else
+            (*stat)->Cpu_usage = 0;
+
+          // save values
+          (*stat)->__last_utime = utimepid;
+          (*stat)->__last_stime = stimepid;
+          (*stat)->__last_total = total;
+        }
       }
 
-      // calculate cpu usage
-      double totalCoefficient = total - (*stat)->__last_total;
-      if (totalCoefficient != 0)
-        (*stat)->Cpu_usage = (fabs(100.0 * (utimepid - (*stat)->__last_utime) / totalCoefficient) +
-                              fabs(100.0 * (stimepid - (*stat)->__last_stime) / totalCoefficient));
-      else
-        (*stat)->Cpu_usage = 0;
+      // read btime
+      char* btime_begin = strstr(statcache, "btime ") + 6 /* btime word length and space */;
+      if (btime_begin)
+        sscanf(btime_begin, "%lu", &(*stat)->__last_btime);
 
-      // save values
-      (*stat)->__last_utime = utimepid;
-      (*stat)->__last_stime = stimepid;
-      (*stat)->__last_total = total;
-    } else {
-      success = false;
-      strconcat(errormsg, 3, SAFE_PASS_VARGS("Invalid data in the file '", statfile, "'"));
+      free(statpath);
+      free(statcache);
     }
-
-    free(statpath);
   }
 
   if (success) {
     // calculate memory usage
     long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
     (*stat)->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
+  }
+
+  if (success) {
+    // calculate time
+    struct tm buf;
+
+    time_t process_starttime = (*stat)->__last_btime + (*stat)->__last_starttime / sysconf(_SC_CLK_TCK);
+    localtime_r(&process_starttime, &buf);
+    sprintf((*stat)->Start_time, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
+    (*stat)->Start_time[TIME_STR_LENGTH] = '\0';
+
+    time_t process_usagetime = time(0) - process_starttime;
+    localtime_r(&process_usagetime, &buf);
+    sprintf((*stat)->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
+    (*stat)->Time_usage[TIME_STR_LENGTH] = '\0';
   }
 
   free(str_pid);
@@ -250,6 +319,9 @@ __attribute__((nothrow)) void Process_stat_free(Process_stat** stat)
 {
   if (*stat) {
     free((*stat)->Process_name);
+    free((*stat)->State_fullname);
+    free((*stat)->Start_time);
+    free((*stat)->Time_usage);
   }
   free(*stat);
   *stat = NULL;
