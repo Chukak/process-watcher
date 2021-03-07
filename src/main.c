@@ -39,13 +39,15 @@ __attribute__((nothrow)) int main(int argc, char** argv)
       Is_running = false;
       Window_destroy(mainwin);
     } else {
-      printf("%s\n", errormsg);
+      if (errormsg)
+        printf("%s\n", errormsg);
     }
 
     free(errormsg);
     Process_stat_free(&stat);
   } else {
-    printf("%s\n", args->Errormsg);
+    if (args->Errormsg)
+      printf("%s\n", args->Errormsg);
   }
 
   Cmd_args_free(args);

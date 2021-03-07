@@ -120,12 +120,15 @@ __attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat
   }
   cursY += 2;
   {
-    char *hdrpriority = NULL,          // process priority
-        *hdrstate = NULL,              // process state
-            *hdrmemory = NULL,         // process memory
-                *strpriority = NULL,   // process priority as str
-                    *strmemory = NULL; // memory usage as str
-    char strstate[2] = "\0";           // process state as str
+    char *hdrpriority = NULL,                  // process priority
+        *hdrstate = NULL,                      // process state
+            *hdrmemory = NULL,                 // process memory
+                *hdrtime_usage = NULL,         // process time usage
+                    *hdrtime_start = NULL,     // process time start
+                        *strpriority = NULL,   // process priority as str
+                            *strmemory = NULL; // memory usage as str
+
+    char strstate[2] = "\0"; // process state as str
     attron(COLOR_PAIR(DEFAULT_PAIR));
 
     itostr(proc_stat->Priority, &strpriority);
@@ -133,9 +136,8 @@ __attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat
     mvwaddstr(win->__p, cursY, loffsetX, hdrpriority);
     cursY++;
 
-    // TODO: state full name
     strstate[0] = proc_stat->State;
-    strconcat(&hdrstate, 3, SAFE_PASS_VARGS("State: '", strstate, "' "));
+    strconcat(&hdrstate, 5, SAFE_PASS_VARGS("State: '", strstate, "' (", proc_stat->State_fullname, ") "));
     mvwaddstr(win->__p, cursY, loffsetX, hdrstate);
     cursY++;
 
@@ -145,10 +147,20 @@ __attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat
     mvwaddstr(win->__p, cursY, loffsetX, hdrmemory);
     cursY++;
 
+    strconcat(&hdrtime_usage, 3, SAFE_PASS_VARGS("Time: ", proc_stat->Time_usage, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdrtime_usage);
+    cursY++;
+
+    strconcat(&hdrtime_start, 3, SAFE_PASS_VARGS("Start time: ", proc_stat->Start_time, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdrtime_start);
+    cursY++;
+
     attroff(COLOR_PAIR(DEFAULT_PAIR));
     free(hdrpriority);
     free(hdrstate);
     free(hdrmemory);
+    free(hdrtime_usage);
+    free(hdrtime_start);
     free(strpriority);
     free(strmemory);
   }
@@ -156,17 +168,6 @@ __attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat
 
 __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_stat)
 {
-  bool is_ok = true;
-  {
-    char* errormsg = NULL;
-    if (!(is_ok = Process_stat_update(&proc_stat, &errormsg))) {
-      printw("%s\n", errormsg);
-    }
-    free(errormsg);
-  }
-  if (!is_ok)
-    return;
-
   int x = 0, y = 0;
   {
     struct winsize sz; // get terminal real size at the moment
@@ -174,7 +175,7 @@ __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_sta
       x = sz.ws_col;
       y = sz.ws_row;
     } else {
-      // use default from ncurses
+      // use defaults from ncurses
       x = COLS;
       y = LINES;
     }
@@ -182,6 +183,13 @@ __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_sta
   wresize(win->__p, y, x);
   refresh();
   clear();
+
+  char* errormsg = NULL;
+  if (!Process_stat_update(&proc_stat, &errormsg)) {
+    printw("%s\n", errormsg);
+    free(errormsg);
+    return;
+  }
 
   draw_CPU_usage(win, proc_stat, x, y);
   draw_process_info(win, proc_stat, x, y);
