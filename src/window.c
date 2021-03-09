@@ -12,6 +12,9 @@ static const int LOW_CPU_USAGE = 3;
 static const int MEDIUM_CPU_USAGE = 4;
 static const int HARD_CPU_USAGE = 5;
 
+static const int MAX_CPU_VALUE_LENGTH =
+    7; // max CPU value if XXX.XXX (example 100.121), 3 digits + dot + 3 digits as precision
+
 __attribute__((nothrow)) Window *Window_init()
 {
   Window *win = malloc(sizeof(Window));
@@ -45,22 +48,35 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *p
   {
     // cpu value
     char *cpu_str = NULL; // cpu usage as str
-    itostr(proc_stat->Cpu_usage, &cpu_str);
+    char *hdrcpuoffset = NULL;
+    ftostr(proc_stat->Cpu_usage, &cpu_str);
     strconcat(&hdrcpu, 3, SAFE_PASS_VARGS("CPU: ", cpu_str, "% "));
 
+    attron(COLOR_PAIR(HEADER_PAIR));
+    mvwaddstr(win->__p, cursY, cursX, hdrcpu);
+    attroff(COLOR_PAIR(HEADER_PAIR));
+    cursX += strlen(hdrcpu);
+
+    {
+      // whitespaces
+      int spcount = MAX_CPU_VALUE_LENGTH - strlen(cpu_str);
+      char spaces[spcount + 1];
+      spaces[0] = '\0';
+
+      while (spcount-- > 1)
+        strcat(spaces, " ");
+
+      strconcat(&hdrcpuoffset, 2, SAFE_PASS_VARGS(spaces, "["));
+    }
+
+    attron(COLOR_PAIR(DEFAULT_PAIR));
+    mvwaddstr(win->__p, cursY, cursX, hdrcpuoffset);
+    attroff(COLOR_PAIR(DEFAULT_PAIR));
+    cursX += strlen(hdrcpuoffset);
+
     free(cpu_str);
+    free(hdrcpuoffset);
   }
-
-  attron(COLOR_PAIR(HEADER_PAIR));
-  mvwaddstr(win->__p, cursY, cursX, hdrcpu);
-  attroff(COLOR_PAIR(HEADER_PAIR));
-  cursX += strlen(hdrcpu);
-
-  attron(COLOR_PAIR(DEFAULT_PAIR));
-  mvwaddstr(win->__p, cursY, cursX, "  [");
-  cursX += roffsetX;
-  attroff(COLOR_PAIR(DEFAULT_PAIR));
-
   {
     // print cpu usage bar
     int len_CPUbar = termX - (cursX + roffsetX);
@@ -142,8 +158,7 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
     cursY++;
     free(hdr);
 
-    // TODO: float to strif needed
-    itostr(proc_stat->Memory_usage, &strmemory);
+    ftostr(proc_stat->Memory_usage, &strmemory);
     strconcat(&hdr, 3, SAFE_PASS_VARGS("Memory: ", strmemory, "MB "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
@@ -177,13 +192,13 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
 
     attron(COLOR_PAIR(DEFAULT_PAIR));
 
-    itostr(proc_stat->Cpu_peak_usage, &strcpu);
+    ftostr(proc_stat->Cpu_peak_usage, &strcpu);
     strconcat(&hdr, 3, SAFE_PASS_VARGS("CPU peak: ", strcpu, "% "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
     free(hdr);
 
-    itostr(proc_stat->Memory_peak_usage, &strmemory);
+    ftostr(proc_stat->Memory_peak_usage, &strmemory);
     strconcat(&hdr, 3, SAFE_PASS_VARGS("Memory peak: ", strmemory, "MB "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
