@@ -109,5 +109,20 @@ strreplace(const char* src, char** dst, const char* substr, const char* repstr, 
  * @return Number of bytes read or -1 if the file was not opened
  */
 __attribute__((nothrow)) long long fgetall(const char* filename, char** dst);
-
+/**
+ * @brief ftostr
+ * Convert a float number to string. This function dynamically allocates a char array for the store integer.
+ *
+ * If dynamic allocate memory is not possible, this function do nothing.
+ *
+ * @code
+ * char *dst = NULL;
+ * ftostr(0.77, &dst);
+ * // ...
+ * free(dst);
+ * @endcode
+ * @param n
+ * @param dst
+ */
+__attribute__((nothrow)) void ftostr(double n, char** dst);
 #endif // __PROCESS_WATCHER_GLOBALS_H

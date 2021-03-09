@@ -149,3 +149,37 @@ TEST_CASE(File, FileGetAll)
   }
   remove(testfilename);
 }
+
+TEST_CASE(String, DoubleToString)
+{
+  {
+    char *number;
+    ftostr(10.000, &number);
+    CHECK_STR_EQ(number, "10.000");
+    free(number);
+  }
+  {
+    char *number;
+    ftostr(0.333333337, &number);
+    CHECK_STR_EQ(number, "0.333");
+    free(number);
+  }
+  {
+    char *number;
+    ftostr(-5.55, &number);
+    CHECK_STR_EQ(number, "-5.550");
+    free(number);
+  }
+  {
+    char *number;
+    ftostr(0.9999999999999999999999, &number);
+    CHECK_STR_EQ(number, "1.000");
+    free(number);
+  }
+  {
+    char *number;
+    ftostr(-12.1234, &number);
+    CHECK_STR_EQ(number, "-12.123");
+    free(number);
+  }
+}

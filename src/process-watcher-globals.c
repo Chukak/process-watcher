@@ -72,19 +72,6 @@ __attribute__((nothrow)) long long freadall(const char *filename, char **dst)
   return bytes;
 }
 
-__attribute__((nothrow)) void itostr(int n, char **dst)
-{
-  char *array;
-  strrecreate(&array);
-  int length = snprintf(NULL, 0, "%d", n);
-  if (strrealloc(&array, length) != 0)
-    return;
-  ++length; // because, array has the null terminated character
-  snprintf(array, length, "%d", n);
-
-  *dst = array;
-}
-
 __attribute__((nothrow)) void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
 {
   int sublen = strlen(substr), // substring length
@@ -157,4 +144,51 @@ __attribute__((nothrow)) long long fgetall(const char *filename, char **dst)
     bytes = -1;
 
   return bytes;
+}
+
+__attribute__((nothrow)) static void tostr(void *p, char **dst, int typeid)
+{
+  char *array;
+  strrecreate(&array);
+  int length;
+  switch (typeid) {
+  case 0:
+    length = snprintf(NULL, 0, "%d", *((int *) p));
+    break;
+  case 1:
+    length = snprintf(NULL, 0, "%.3f", *((double *) p));
+    break;
+  default:
+    break;
+  }
+
+  if (strrealloc(&array, length) != 0)
+    return;
+  ++length; // because, array has the null terminated character
+
+  switch (typeid) {
+  case 0:
+    snprintf(array, length, "%d", *((int *) p));
+    break;
+  case 1:
+    snprintf(array, length, "%.3f", *((double *) p));
+    break;
+  default:
+    break;
+  }
+
+  *dst = array;
+}
+
+#define __GET_TYPEID(x) _Generic((x), int : 0, double : 1, default : -1)
+#define TO_STR(n, dst) tostr(&n, dst, __GET_TYPEID(n))
+
+__attribute__((nothrow)) void itostr(int n, char **dst)
+{
+  TO_STR(n, dst);
+}
+
+__attribute__((nothrow)) void ftostr(double n, char **dst)
+{
+  TO_STR(n, dst);
 }
