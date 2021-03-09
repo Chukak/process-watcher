@@ -101,6 +101,8 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_STR_EQ(statobj->State_fullname, "Unknown");
     CHECK_STR_EQ(statobj->Time_usage, "00:00:00");
     CHECK_STR_EQ(statobj->Start_time, "00:00:00");
+    CHECK_EQ(statobj->Uid, -1);
+    CHECK_EQ(statobj->Username, NULL);
 
     CHECK_EQ(Process_stat_update(&statobj, &errormsg), true);
     CHECK_EQ(statobj->Pid, actualPid);
@@ -115,6 +117,8 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_STR_EQ(statobj->State_fullname, "Running");
     CHECK_STR_NE(statobj->Time_usage, "00:00:00");
     CHECK_STR_NE(statobj->Start_time, "00:00:00");
+    CHECK_NE(statobj->Uid, -1);
+    CHECK_NE(statobj->Username, NULL);
 
     Process_stat_free(&statobj);
     CHECK_EQ(statobj, NULL);

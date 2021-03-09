@@ -15,7 +15,7 @@ __attribute__((nothrow)) int pid_by_name(const char* name);
 /**
  * @brief Process_stat
  * Stores the information about the running process from '/proc/[pid]' directory. Contains PID, the process name, state,
- * priority, CPU, memory and time usage.
+ * priority, user, CPU, memory and time usage.
  * Also, this structure contains private fields with the '__' prefix. Do not use it.
  *
  * For more informations, check this page https://man7.org/linux/man-pages/man5/proc.5.html
@@ -31,6 +31,8 @@ typedef struct
   double Memory_usage;  //! Memory usage
   char* Start_time;     //! Start time
   char* Time_usage;     //! Work time
+  int Uid;              //! Uid
+  char* Username;       //! User name
   // private fields
   double __last_utime;
   double __last_stime;
@@ -63,7 +65,7 @@ __attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const ch
  * @param errormsg
  * @return
  */
-__attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** errormsg);
+__attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** errormsg);
 /**
  * @brief Process_stat_free
  * Deletes the Process_stat structure.

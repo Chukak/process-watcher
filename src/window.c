@@ -12,9 +12,9 @@ static const int LOW_CPU_USAGE = 3;
 static const int MEDIUM_CPU_USAGE = 4;
 static const int HARD_CPU_USAGE = 5;
 
-__attribute__((nothrow)) Window* Window_init()
+__attribute__((nothrow)) Window *Window_init()
 {
-  Window* win = malloc(sizeof(Window));
+  Window *win = malloc(sizeof(Window));
 
   win->__p = initscr(); // init ncurses WINDOW
 
@@ -34,17 +34,17 @@ __attribute__((nothrow)) Window* Window_init()
   return win;
 }
 
-__attribute__((nothrow)) static void draw_CPU_usage(Window* win, Process_stat* proc_stat, int termX, int termY)
+__attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
 
   int cursX = 0,    // cursor X position
       cursY = 0,    // cursor Y position
       roffsetX = 3; // right offset X position
-  char* hdrcpu = NULL;
+  char *hdrcpu = NULL;
   {
     // cpu value
-    char* cpu_str = NULL; // cpu usage as str
+    char *cpu_str = NULL; // cpu usage as str
     itostr(proc_stat->Cpu_usage, &cpu_str);
     strconcat(&hdrcpu, 3, SAFE_PASS_VARGS("CPU: ", cpu_str, "% "));
 
@@ -92,7 +92,7 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window* win, Process_stat* p
   free(hdrcpu);
 }
 
-__attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat* proc_stat, int termX, int termY)
+__attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
   UNUSED(termX);
@@ -120,53 +120,58 @@ __attribute__((nothrow)) static void draw_process_info(Window* win, Process_stat
   }
   cursY += 2;
   {
-    char *hdrpriority = NULL,                  // process priority
-        *hdrstate = NULL,                      // process state
-            *hdrmemory = NULL,                 // process memory
-                *hdrtime_usage = NULL,         // process time usage
-                    *hdrtime_start = NULL,     // process time start
-                        *strpriority = NULL,   // process priority as str
-                            *strmemory = NULL; // memory usage as str
+    char *hdr = NULL; // header
+
+    char *strpriority = NULL, // process priority as str
+        *strmemory = NULL,    // memory usage as str
+            *struid = NULL;   // user id
 
     char strstate[2] = "\0"; // process state as str
     attron(COLOR_PAIR(DEFAULT_PAIR));
 
     itostr(proc_stat->Priority, &strpriority);
-    strconcat(&hdrpriority, 3, SAFE_PASS_VARGS("Priority: ", strpriority, " "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrpriority);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Priority: ", strpriority, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
 
     strstate[0] = proc_stat->State;
-    strconcat(&hdrstate, 5, SAFE_PASS_VARGS("State: '", strstate, "' (", proc_stat->State_fullname, ") "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrstate);
+    strconcat(&hdr, 5, SAFE_PASS_VARGS("State: '", strstate, "' (", proc_stat->State_fullname, ") "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
 
-    // TODO: float to str
+    // TODO: float to strif needed
     itostr(proc_stat->Memory_usage, &strmemory);
-    strconcat(&hdrmemory, 3, SAFE_PASS_VARGS("Memory: ", strmemory, "MB "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrmemory);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Memory: ", strmemory, "MB "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
 
-    strconcat(&hdrtime_usage, 3, SAFE_PASS_VARGS("Time: ", proc_stat->Time_usage, " "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrtime_usage);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Time: ", proc_stat->Time_usage, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
 
-    strconcat(&hdrtime_start, 3, SAFE_PASS_VARGS("Start time: ", proc_stat->Start_time, " "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrtime_start);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Start time: ", proc_stat->Start_time, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
+
+    itostr(proc_stat->Uid, &struid);
+    strconcat(&hdr, 5, SAFE_PASS_VARGS("User: ", proc_stat->Username, " (Uid=", struid, ") "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursY++;
+    free(hdr);
 
     attroff(COLOR_PAIR(DEFAULT_PAIR));
-    free(hdrpriority);
-    free(hdrstate);
-    free(hdrmemory);
-    free(hdrtime_usage);
-    free(hdrtime_start);
     free(strpriority);
     free(strmemory);
+    free(struid);
   }
 }
 
-__attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_stat)
+__attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_stat)
 {
   int x = 0, y = 0;
   {
@@ -184,7 +189,7 @@ __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_sta
   refresh();
   clear();
 
-  char* errormsg = NULL;
+  char *errormsg = NULL;
   if (!Process_stat_update(&proc_stat, &errormsg)) {
     printw("%s\n", errormsg);
     free(errormsg);
@@ -195,7 +200,7 @@ __attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_sta
   draw_process_info(win, proc_stat, x, y);
 }
 
-__attribute__((nothrow)) void Window_destroy(Window* win)
+__attribute__((nothrow)) void Window_destroy(Window *win)
 {
   endwin(); // remove ncurses WINDOW
 

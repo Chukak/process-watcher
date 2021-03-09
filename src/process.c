@@ -12,6 +12,9 @@
 #include <errno.h>
 #include <math.h>
 #include <time.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 static const char* SYSTEM_PATH_SEPARATOR = "/"; // only linux
 
@@ -107,6 +110,9 @@ __attribute__((nothrow)) void Process_stat_init(Process_stat** stat)
 
   (*stat)->Time_usage = malloc(sizeof(char) * TIME_STR_LENGTH + 1);
   strcpy((*stat)->Time_usage, "00:00:00\0");
+
+  (*stat)->Uid = -1;
+  (*stat)->Username = NULL;
   // private
   (*stat)->__last_utime = 0.0;
   (*stat)->__last_stime = 0.0;
@@ -141,20 +147,20 @@ __attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const ch
   return true;
 }
 
-__attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** errormsg)
+__attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** errormsg)
 {
-  if (!(*stat)) {
+  if (!(*pstat)) {
     char ptrmsg[32];
-    sprintf(ptrmsg, "%p", (const void*) *stat);
+    sprintf(ptrmsg, "%p", (const void*) *pstat);
     strconcat(errormsg, 3, SAFE_PASS_VARGS("Process_stat pointer == '", ptrmsg, "'."));
     return false;
   }
 
   char* str_pid = NULL;
-  itostr((*stat)->Pid, &str_pid);
-  bool success = (*stat)->Pid != -1;
+  itostr((*pstat)->Pid, &str_pid);
+  bool success = (*pstat)->Pid != -1;
   if (!success) {
-    strconcat(errormsg, 5, SAFE_PASS_VARGS("Invalid PID '", str_pid, "' for process '", (*stat)->Process_name, "'"));
+    strconcat(errormsg, 5, SAFE_PASS_VARGS("Invalid PID '", str_pid, "' for process '", (*pstat)->Process_name, "'"));
     return false;
   }
 
@@ -192,15 +198,36 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
                  "%ld " // rss
                  "%*d %*d %*d "
                  "%*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d %*d",
-                 &(*stat)->State,
+                 &(*pstat)->State,
                  &utimepid,
                  &stimepid,
-                 &(*stat)->Priority,
-                 &(*stat)->__last_starttime,
+                 &(*pstat)->Priority,
+                 &(*pstat)->__last_starttime,
                  &rsspid);
       if (args_set != 6) {
         success = false;
         strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to read data from '/proc/", str_pid, "/stat': Invalid order."));
+      }
+
+      {
+        int fd = open(pidstatpath, O_RDONLY);
+        struct stat st;
+        if (fstat(fd, &st) == 0) {
+          struct passwd* pw = getpwuid(st.st_uid);
+          if (pw) {
+            (*pstat)->Uid = st.st_uid;
+            if ((*pstat)->Username)
+              free((*pstat)->Username);
+
+            (*pstat)->Username = malloc(sizeof(char) * strlen(pw->pw_name) + 1);
+            strcpy((*pstat)->Username, pw->pw_name);
+          }
+        } else {
+          (*pstat)->Uid = -1;
+          free((*pstat)->Username);
+          (*pstat)->Username = NULL;
+        }
+        close(fd);
       }
     }
 
@@ -210,7 +237,7 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
 
   if (success) {
     char statestr[STATE_BUFFER_SIZE];
-    switch ((*stat)->State) {
+    switch ((*pstat)->State) {
     case 'U':
       strcpy(statestr, "Unknown");
       break;
@@ -228,11 +255,11 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
       break;
     }
 
-    if ((*stat)->State_fullname)
-      free((*stat)->State_fullname);
+    if ((*pstat)->State_fullname)
+      free((*pstat)->State_fullname);
 
-    (*stat)->State_fullname = malloc(sizeof(char) * strlen(statestr) + 1);
-    strcpy((*stat)->State_fullname, statestr);
+    (*pstat)->State_fullname = malloc(sizeof(char) * strlen(statestr) + 1);
+    strcpy((*pstat)->State_fullname, statestr);
   }
 
   if (success) {
@@ -265,24 +292,24 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
           strconcat(errormsg, 3, SAFE_PASS_VARGS("Invalid data in the file '", statpath, "'"));
         } else {
           // calculate cpu usage
-          double totalCoefficient = total - (*stat)->__last_total;
+          double totalCoefficient = total - (*pstat)->__last_total;
           if (totalCoefficient != 0)
-            (*stat)->Cpu_usage = (fabs(100.0 * (utimepid - (*stat)->__last_utime) / totalCoefficient) +
-                                  fabs(100.0 * (stimepid - (*stat)->__last_stime) / totalCoefficient));
+            (*pstat)->Cpu_usage = (fabs(100.0 * (utimepid - (*pstat)->__last_utime) / totalCoefficient) +
+                                   fabs(100.0 * (stimepid - (*pstat)->__last_stime) / totalCoefficient));
           else
-            (*stat)->Cpu_usage = 0;
+            (*pstat)->Cpu_usage = 0;
 
           // save values
-          (*stat)->__last_utime = utimepid;
-          (*stat)->__last_stime = stimepid;
-          (*stat)->__last_total = total;
+          (*pstat)->__last_utime = utimepid;
+          (*pstat)->__last_stime = stimepid;
+          (*pstat)->__last_total = total;
         }
       }
 
       // read btime
       char* btime_begin = strstr(statcache, "btime ") + 6 /* btime word length and space */;
       if (btime_begin)
-        sscanf(btime_begin, "%lu", &(*stat)->__last_btime);
+        sscanf(btime_begin, "%lu", &(*pstat)->__last_btime);
 
       free(statpath);
       free(statcache);
@@ -292,23 +319,23 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
   if (success) {
     // calculate memory usage
     long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
-    (*stat)->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
+    (*pstat)->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
   }
 
   if (success) {
     // calculate time
     struct tm buf;
 
-    time_t process_starttime = (*stat)->__last_btime + (*stat)->__last_starttime / sysconf(_SC_CLK_TCK);
+    time_t process_starttime = (*pstat)->__last_btime + (*pstat)->__last_starttime / sysconf(_SC_CLK_TCK);
     localtime_r(&process_starttime, &buf);
-    sprintf((*stat)->Start_time, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
-    (*stat)->Start_time[TIME_STR_LENGTH] = '\0';
+    sprintf((*pstat)->Start_time, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
+    (*pstat)->Start_time[TIME_STR_LENGTH] = '\0';
 
     time_t process_usagetime = time(0) - process_starttime;
     // we need duration instead of current localtime
     gmtime_r(&process_usagetime, &buf);
-    sprintf((*stat)->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
-    (*stat)->Time_usage[TIME_STR_LENGTH] = '\0';
+    sprintf((*pstat)->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
+    (*pstat)->Time_usage[TIME_STR_LENGTH] = '\0';
   }
 
   free(str_pid);
@@ -323,6 +350,7 @@ __attribute__((nothrow)) void Process_stat_free(Process_stat** stat)
     free((*stat)->State_fullname);
     free((*stat)->Start_time);
     free((*stat)->Time_usage);
+    free((*stat)->Username);
   }
   free(*stat);
   *stat = NULL;
