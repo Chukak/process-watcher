@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#define MAX(a, b) (a > b ? a : b)
+
 static const char* SYSTEM_PATH_SEPARATOR = "/"; // only linux
 
 static const char* PROC_DIRECTORY_PATH = "/proc";
@@ -103,7 +105,9 @@ __attribute__((nothrow)) void Process_stat_init(Process_stat** stat)
 
   (*stat)->Priority = 0;
   (*stat)->Cpu_usage = 0.0;
+  (*stat)->Cpu_peak_usage = 0.0;
   (*stat)->Memory_usage = 0.0;
+  (*stat)->Memory_peak_usage = 0.0;
 
   (*stat)->Start_time = malloc(sizeof(char) * TIME_STR_LENGTH + 1);
   strcpy((*stat)->Start_time, "00:00:00\0");
@@ -299,6 +303,8 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
           else
             (*pstat)->Cpu_usage = 0;
 
+          (*pstat)->Cpu_peak_usage = MAX((*pstat)->Cpu_peak_usage, (*pstat)->Cpu_usage);
+
           // save values
           (*pstat)->__last_utime = utimepid;
           (*pstat)->__last_stime = stimepid;
@@ -320,6 +326,8 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
     // calculate memory usage
     long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
     (*pstat)->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
+
+    (*pstat)->Memory_peak_usage = MAX((*pstat)->Memory_peak_usage, (*pstat)->Memory_usage);
   }
 
   if (success) {

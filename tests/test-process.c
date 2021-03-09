@@ -114,6 +114,8 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_EQ(statobj->State, 'R'); // Running state
     CHECK_GT(statobj->Cpu_usage, 0.0);
     CHECK_GT(statobj->Memory_usage, 0.0);
+    CHECK_EQ(statobj->Cpu_peak_usage, statobj->Cpu_usage);
+    CHECK_EQ(statobj->Memory_peak_usage, statobj->Memory_usage);
     CHECK_STR_EQ(statobj->State_fullname, "Running");
     CHECK_STR_NE(statobj->Time_usage, "00:00:00");
     CHECK_STR_NE(statobj->Start_time, "00:00:00");

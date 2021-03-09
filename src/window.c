@@ -100,22 +100,23 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
   int cursY = 2,    // cursor Y position
       loffsetX = 4; // left offset X position
   {
-    char *hdrname = NULL,   // process name
-        *hdrPID = NULL,     // process pid
-            *strPID = NULL; // pid as str
+    char *hdr = NULL; // header
+
+    char *strPID = NULL; // pid as str
+
     attron(COLOR_PAIR(DEFAULT_PAIR));
 
-    strconcat(&hdrname, 3, SAFE_PASS_VARGS("Name: ", proc_stat->Process_name, " "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrname);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Name: ", proc_stat->Process_name, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
     cursY++;
+    free(hdr);
 
     itostr(proc_stat->Pid, &strPID);
-    strconcat(&hdrPID, 3, SAFE_PASS_VARGS("PID: ", strPID, " "));
-    mvwaddstr(win->__p, cursY, loffsetX, hdrPID);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("PID: ", strPID, " "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    free(hdr);
 
     attroff(COLOR_PAIR(DEFAULT_PAIR));
-    free(hdrname);
-    free(hdrPID);
     free(strPID);
   }
   cursY += 2;
@@ -161,13 +162,36 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
     itostr(proc_stat->Uid, &struid);
     strconcat(&hdr, 5, SAFE_PASS_VARGS("User: ", proc_stat->Username, " (Uid=", struid, ") "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
-    cursY++;
     free(hdr);
 
     attroff(COLOR_PAIR(DEFAULT_PAIR));
     free(strpriority);
     free(strmemory);
     free(struid);
+  }
+  cursY += 2;
+  {
+    char *hdr = NULL; // header
+
+    char *strcpu = NULL, *strmemory = NULL;
+
+    attron(COLOR_PAIR(DEFAULT_PAIR));
+
+    itostr(proc_stat->Cpu_peak_usage, &strcpu);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("CPU peak: ", strcpu, "% "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursY++;
+    free(hdr);
+
+    itostr(proc_stat->Memory_peak_usage, &strmemory);
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("Memory peak: ", strmemory, "MB "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursY++;
+    free(hdr);
+
+    attroff(COLOR_PAIR(DEFAULT_PAIR));
+    free(strcpu);
+    free(strmemory);
   }
 }
 

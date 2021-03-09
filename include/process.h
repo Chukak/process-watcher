@@ -22,17 +22,19 @@ __attribute__((nothrow)) int pid_by_name(const char* name);
  */
 typedef struct
 {
-  int Pid;              //! PID of the running process
-  char* Process_name;   //! The process name
-  char State;           //! State. (a default state = 'U' - Unknown)
-  char* State_fullname; //! State as string.
-  long int Priority;    //! Priority
-  double Cpu_usage;     //! CPU usage
-  double Memory_usage;  //! Memory usage
-  char* Start_time;     //! Start time
-  char* Time_usage;     //! Work time
-  int Uid;              //! Uid
-  char* Username;       //! User name
+  int Pid;                  //! PID of the running process
+  char* Process_name;       //! The process name
+  char State;               //! State. (a default state = 'U' - Unknown)
+  char* State_fullname;     //! State as string.
+  long int Priority;        //! Priority
+  double Cpu_usage;         //! CPU usage
+  double Cpu_peak_usage;    //! CPU peak usage
+  double Memory_usage;      //! Memory usage
+  double Memory_peak_usage; //! Memory peak usage
+  char* Start_time;         //! Start time
+  char* Time_usage;         //! Work time
+  int Uid;                  //! Uid
+  char* Username;           //! User name
   // private fields
   double __last_utime;
   double __last_stime;
