@@ -305,7 +305,8 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** stat, char** er
     (*stat)->Start_time[TIME_STR_LENGTH] = '\0';
 
     time_t process_usagetime = time(0) - process_starttime;
-    localtime_r(&process_usagetime, &buf);
+    // we need duration instead of current localtime
+    gmtime_r(&process_usagetime, &buf);
     sprintf((*stat)->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
     (*stat)->Time_usage[TIME_STR_LENGTH] = '\0';
   }
