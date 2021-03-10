@@ -35,6 +35,7 @@ typedef struct
   char* Time_usage;         //! Work time
   int Uid;                  //! Uid
   char* Username;           //! User name
+  bool Killed;
   // private fields
   double __last_utime;
   double __last_stime;
@@ -64,10 +65,19 @@ __attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const ch
  * Updates all public fields in the Process_stat structure. If any error occurs during the update, stores the error
  * message in the 'errormsg' parameter.
  * @param stat The pointer to the structure
- * @param errormsg
- * @return
+ * @param errormsg Pointer to char array.
+ * @return Result of updating.
  */
 __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** errormsg);
+/**
+ * @brief Process_stat_kill
+ * Kills the current process by PID. If any error occurs during the destruction process, stores the error
+ * message in the 'errormsg' parameter.
+ * @param stat The pointer to the structure
+ * @param errormsg Pointer to char array.
+ * @return Result of destruction.
+ */
+__attribute__((nothrow)) bool Process_stat_kill(Process_stat** stat, char** errormsg);
 /**
  * @brief Process_stat_free
  * Deletes the Process_stat structure.

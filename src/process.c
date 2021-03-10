@@ -15,6 +15,7 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #define MAX(a, b) (a > b ? a : b)
 
@@ -117,6 +118,7 @@ __attribute__((nothrow)) void Process_stat_init(Process_stat** stat)
 
   (*stat)->Uid = -1;
   (*stat)->Username = NULL;
+  (*stat)->Killed = false;
   // private
   (*stat)->__last_utime = 0.0;
   (*stat)->__last_stime = 0.0;
@@ -171,7 +173,7 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
   // common variables
   size_t utimepid, stimepid;
   long int rsspid;
-  if (success) {
+  if (success && !(*pstat)->Killed) {
     char* pidstatpath = NULL;
     strconcat(
         &pidstatpath,
@@ -257,6 +259,9 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
     case 'T':
       strcpy(statestr, "Stopped");
       break;
+    case 'K':
+      strcpy(statestr, "Killed by '" __BINARY_NAME "'");
+      break;
     }
 
     if ((*pstat)->State_fullname)
@@ -266,7 +271,7 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
     strcpy((*pstat)->State_fullname, statestr);
   }
 
-  if (success) {
+  if (success && !(*pstat)->Killed) {
     char* statpath = NULL;
     strconcat(&statpath, 3, SAFE_PASS_VARGS(PROC_DIRECTORY_PATH, SYSTEM_PATH_SEPARATOR, STAT_FILENAME));
 
@@ -322,7 +327,7 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
     }
   }
 
-  if (success) {
+  if (success && !(*pstat)->Killed) {
     // calculate memory usage
     long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
     (*pstat)->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
@@ -330,7 +335,7 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
     (*pstat)->Memory_peak_usage = MAX((*pstat)->Memory_peak_usage, (*pstat)->Memory_usage);
   }
 
-  if (success) {
+  if (success && !(*pstat)->Killed) {
     // calculate time
     struct tm buf;
 
@@ -362,4 +367,46 @@ __attribute__((nothrow)) void Process_stat_free(Process_stat** stat)
   }
   free(*stat);
   *stat = NULL;
+}
+
+__attribute__((nothrow)) bool Process_stat_kill(Process_stat** stat, char** errormsg)
+{
+  if (!(*stat)) {
+    char ptrmsg[32];
+    sprintf(ptrmsg, "%p", (const void*) *stat);
+    strconcat(errormsg, 3, SAFE_PASS_VARGS("Process_stat pointer == '", ptrmsg, "'."));
+    return false;
+  }
+
+  if ((*stat)->Pid > 0) {
+    char* str_pid = NULL;
+    itostr((*stat)->Pid, &str_pid);
+
+    int status = kill((*stat)->Pid, SIGKILL);
+    if (status != 0) {
+      strconcat(
+          errormsg,
+          7,
+          SAFE_PASS_VARGS("Unable to kill '", (*stat)->Process_name, "' (", str_pid, "): ", strerror(errno), "."));
+      return false;
+    }
+
+    (*stat)->Killed = true;
+    (*stat)->State = 'K';
+    (*stat)->Cpu_usage = 0.0;
+    (*stat)->Memory_usage = 0.0;
+    (*stat)->Priority = 0;
+
+    {
+      // length of ' (Killed)' message is 9
+      char* allocated = realloc((*stat)->Process_name, (strlen((*stat)->Process_name) + 9) * sizeof(char) + 1);
+      if (allocated) {
+        (*stat)->Process_name = allocated;
+        strcat((*stat)->Process_name, " (Killed)");
+      }
+    }
+
+    free(str_pid);
+  }
+  return true;
 }

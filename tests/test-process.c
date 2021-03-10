@@ -103,6 +103,7 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_STR_EQ(statobj->Start_time, "00:00:00");
     CHECK_EQ(statobj->Uid, -1);
     CHECK_EQ(statobj->Username, NULL);
+    CHECK_EQ(statobj->Killed, false);
 
     CHECK_EQ(Process_stat_update(&statobj, &errormsg), true);
     CHECK_EQ(statobj->Pid, actualPid);
@@ -121,12 +122,33 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_STR_NE(statobj->Start_time, "00:00:00");
     CHECK_NE(statobj->Uid, -1);
     CHECK_NE(statobj->Username, NULL);
+    CHECK_EQ(statobj->Killed, false);
+
+    CHECK_EQ(Process_stat_kill(&statobj, &errormsg), true);   // kill
+    CHECK_EQ(Process_stat_update(&statobj, &errormsg), true); // refresh
+    CHECK_EQ(statobj->Pid, actualPid);
+    CHECK_EQ(statobj->State, 'K'); // Running state
+    CHECK_EQ(statobj->Cpu_usage, 0.0);
+    CHECK_EQ(statobj->Memory_usage, 0.0);
+    CHECK_EQ(statobj->Priority, 0);
+    CHECK_NE(statobj->Cpu_peak_usage, statobj->Cpu_usage);
+    CHECK_NE(statobj->Memory_peak_usage, statobj->Memory_usage);
+    CHECK_STR_EQ(statobj->State_fullname,
+                 ""
+                 "Killed by '" __BINARY_NAME "'");
+    CHECK_NE(statobj->Uid, -1);
+    CHECK_NE(statobj->Username, NULL);
+    CHECK_EQ(statobj->Killed, true);
+
+    SLEEP_SEC(2);
+    CHECK_LT(getpgid(actualPid), 0);
 
     Process_stat_free(&statobj);
     CHECK_EQ(statobj, NULL);
 
     {
-      kill(actualPid, SIGKILL);
+      if (getpgid(actualPid) >= 0)
+        kill(actualPid, SIGKILL);
     }
   }
   clean_temp_files();
