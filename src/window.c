@@ -11,6 +11,7 @@ static const int HEADER_PAIR = 2;  // line color pair id
 static const int LOW_CPU_USAGE = 3;
 static const int MEDIUM_CPU_USAGE = 4;
 static const int HARD_CPU_USAGE = 5;
+static const int MENU_PAIR = 6;
 
 static const int MAX_CPU_VALUE_LENGTH =
     7; // max CPU value if XXX.XXX (example 100.121), 3 digits + dot + 3 digits as precision
@@ -23,6 +24,9 @@ __attribute__((nothrow)) Window *Window_init()
 
   clear();
   curs_set(0);
+  noecho();
+  cbreak();
+  nodelay(win->__p, true); // non-blocking getch
   refresh();
 
   start_color();
@@ -33,6 +37,7 @@ __attribute__((nothrow)) Window *Window_init()
   init_pair(LOW_CPU_USAGE, COLOR_GREEN, COLOR_BLACK);
   init_pair(MEDIUM_CPU_USAGE, COLOR_YELLOW, COLOR_BLACK);
   init_pair(HARD_CPU_USAGE, COLOR_RED, COLOR_BLACK);
+  init_pair(MENU_PAIR, COLOR_BLACK, COLOR_MAGENTA);
 
   return win;
 }
@@ -210,6 +215,32 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
   }
 }
 
+__attribute__((nothrow)) static void draw_menu(Window *win, int termX, int termY)
+{
+  UNUSED(termX);
+
+  int cursX = 0,         // cursor X position
+      cursY = termY - 1, // cursor Y position
+      loffsetX = 4;      // left offset X position
+
+  {
+    attron(COLOR_PAIR(MENU_PAIR));
+
+    char *hdr = NULL;
+    strconcat(&hdr, 2, SAFE_PASS_VARGS(" F1 - Kill process "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursX += loffsetX + strlen(hdr);
+    free(hdr);
+
+    strconcat(&hdr, 2, SAFE_PASS_VARGS(" F4 - Exit "));
+    mvwaddstr(win->__p, cursY, loffsetX + cursX, hdr);
+    cursX += loffsetX;
+    free(hdr);
+
+    attroff(COLOR_PAIR(MENU_PAIR));
+  }
+}
+
 __attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_stat)
 {
   int x = 0, y = 0;
@@ -237,6 +268,7 @@ __attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_sta
 
   draw_CPU_usage(win, proc_stat, x, y);
   draw_process_info(win, proc_stat, x, y);
+  draw_menu(win, x, y);
 }
 
 __attribute__((nothrow)) void Window_destroy(Window *win)
