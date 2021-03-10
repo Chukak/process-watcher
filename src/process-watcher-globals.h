@@ -1,11 +1,8 @@
 #ifndef __PROCESS_WATCHER_GLOBALS_H
 #define __PROCESS_WATCHER_GLOBALS_H
 
-/**
- * @brief UNUSED
- * Macro makes the variable unused.
- */
-#define UNUSED(__var) (void) __var;
+#include "props.h"
+
 /**
  * @brief SAFE_PASS_VARGS
  * Macro for use with variadic parameters. Macro adds a NULL pointer at the end.
@@ -32,7 +29,7 @@
  * @param dst The array to store result
  * @param count Number of strings for concatenation
  */
-__attribute__((nothrow)) void strconcat(char** dst, int count, ...);
+DECLFUNC void strconcat(char** dst, int count, ...);
 /**
  * @brief freadall
  * Reads all data from file. This functions dynamically allocates a char array for the data
@@ -51,7 +48,7 @@ __attribute__((nothrow)) void strconcat(char** dst, int count, ...);
  * @param dst The array to store data
  * @return Number of bytes read
  */
-__attribute__((nothrow)) long long freadall(const char* filename, char** dst);
+DECLFUNC long long freadall(const char* filename, char** dst);
 /**
  * @brief itostr
  * Convert an integer number to string. This function dynamically allocates a char array for the store integer.
@@ -68,7 +65,7 @@ __attribute__((nothrow)) long long freadall(const char* filename, char** dst);
  * @param n The number
  * @param dst The array to store number
  */
-__attribute__((nothrow)) void itostr(int n, char** dst);
+DECLFUNC void itostr(int n, char** dst);
 /**
  * @brief strreplace
  * Replaces substrings in the passed string. The specified number of substrings wil be replaced, if all substrings are
@@ -88,8 +85,8 @@ __attribute__((nothrow)) void itostr(int n, char** dst);
  * @param repstr The replacement string
  * @param count Number of substring to replace
  */
-__attribute__((nothrow)) void
-strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count);
+DECLFUNC void strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count)
+    ATTR(nonnull(1, 3, 4));
 /**
  * @brief fgetall
  * Reads all data from file. This functions dynamically allocates a char array for the data
@@ -108,7 +105,7 @@ strreplace(const char* src, char** dst, const char* substr, const char* repstr, 
  * @param dst The array to store data
  * @return Number of bytes read or -1 if the file was not opened
  */
-__attribute__((nothrow)) long long fgetall(const char* filename, char** dst);
+DECLFUNC long long fgetall(const char* filename, char** dst);
 /**
  * @brief ftostr
  * Convert a float number to string. This function dynamically allocates a char array for the store integer.
@@ -124,5 +121,5 @@ __attribute__((nothrow)) long long fgetall(const char* filename, char** dst);
  * @param n
  * @param dst
  */
-__attribute__((nothrow)) void ftostr(double n, char** dst);
+DECLFUNC void ftostr(double n, char** dst);
 #endif // __PROCESS_WATCHER_GLOBALS_H

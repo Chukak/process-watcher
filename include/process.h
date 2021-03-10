@@ -1,6 +1,7 @@
 #ifndef __PROCESS_H
 #define __PROCESS_H
 
+#include "props.h"
 #include <stdbool.h>
 
 /**
@@ -11,7 +12,7 @@
  * @param name Process name
  * @return Return PID or -1
  */
-__attribute__((nothrow)) int pid_by_name(const char* name);
+DECLFUNC int pid_by_name(const char* name);
 /**
  * @brief Process_stat
  * Stores the information about the running process from '/proc/[pid]' directory. Contains PID, the process name, state,
@@ -26,7 +27,7 @@ typedef struct
   char* Process_name;       //! The process name
   char State;               //! State. (a default state = 'U' - Unknown)
   char* State_fullname;     //! State as string.
-  long int Priority;        //! Priority
+  int Priority;             //! Priority
   double Cpu_usage;         //! CPU usage
   double Cpu_peak_usage;    //! CPU peak usage
   double Memory_usage;      //! Memory usage
@@ -37,19 +38,19 @@ typedef struct
   char* Username;           //! User name
   bool Killed;
   // private fields
-  double __last_utime;
-  double __last_stime;
-  double __last_total;
-  unsigned long __last_starttime;
-  unsigned long __last_btime;
+  unsigned long __last_utime;
+  unsigned long __last_stime;
+  unsigned long __last_total;
+  long int __last_starttime;
+  long int __last_btime;
 } Process_stat;
 
 /**
  * @brief Process_stat_init
  * Initializes the new Process_stat structure with default values.
- * @param stat The pointer to the structure
+ * @return The pointer to the new structure
  */
-__attribute__((nothrow)) void Process_stat_init(Process_stat** stat);
+DECLFUNC Process_stat* Process_stat_init() ATTR(warn_unused_result);
 /**
  * @brief Process_stat_set_pid
  * Searches for the PID by the passed process name and stores this PID to the passed Process_stat structure. If PID not
@@ -59,7 +60,7 @@ __attribute__((nothrow)) void Process_stat_init(Process_stat** stat);
  * @param errormsg Pointer to char array.
  * @return Result of searching for the PID
  */
-__attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const char* processname, char** errormsg);
+DECLFUNC bool Process_stat_set_pid(Process_stat* stat, const char* processname, char** errormsg) ATTR(nonnull(1, 2));
 /**
  * @brief Process_stat_update
  * Updates all public fields in the Process_stat structure. If any error occurs during the update, stores the error
@@ -68,7 +69,7 @@ __attribute__((nothrow)) bool Process_stat_set_pid(Process_stat** stat, const ch
  * @param errormsg Pointer to char array.
  * @return Result of updating.
  */
-__attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** errormsg);
+DECLFUNC bool Process_stat_update(Process_stat* pstat, char** errormsg) ATTR(nonnull(1));
 /**
  * @brief Process_stat_kill
  * Kills the current process by PID. If any error occurs during the destruction process, stores the error
@@ -77,12 +78,12 @@ __attribute__((nothrow)) bool Process_stat_update(Process_stat** pstat, char** e
  * @param errormsg Pointer to char array.
  * @return Result of destruction.
  */
-__attribute__((nothrow)) bool Process_stat_kill(Process_stat** stat, char** errormsg);
+DECLFUNC bool Process_stat_kill(Process_stat* stat, char** errormsg) ATTR(nonnull(1));
 /**
  * @brief Process_stat_free
  * Deletes the Process_stat structure.
  * @param stat The pointer to the structure
  */
-__attribute__((nothrow)) void Process_stat_free(Process_stat** stat);
+DECLFUNC void Process_stat_free(Process_stat* stat) ATTR(nonnull(1));
 
 #endif // __PROCESS_H

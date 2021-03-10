@@ -8,7 +8,7 @@
 static const int DEFAULT_REFRESH_TIMEOUT_MS = 1000; // default refresh timeout
 static const int INCORRECT_REFRESH_TIMEOUT_MS = -1;
 
-__attribute__((nothrow)) Cmd_args* Cmd_args_init(int argc, char** argv)
+DECLFUNC ATTR(warn_unused_result) Cmd_args* Cmd_args_init(int argc, char** argv)
 {
   Cmd_args* cmdargs = malloc(sizeof(Cmd_args));
   cmdargs->Valid = argc > 1;
@@ -58,18 +58,15 @@ __attribute__((nothrow)) Cmd_args* Cmd_args_init(int argc, char** argv)
   return cmdargs;
 }
 
-__attribute__((nothrow)) void Cmd_args_free(Cmd_args* args)
+DECLFUNC ATTR(nonnull(1)) void Cmd_args_free(Cmd_args* args)
 {
-  if (args) {
-    free(args->Process_name);
-    free(args->Errormsg);
-  }
+  free(args->Process_name);
+  free(args->Errormsg);
 
   free(args);
-  args = NULL;
 }
 
-__attribute__((nothrow)) void print_help()
+DECLFUNC void print_help()
 {
   // clang-format off
   char * helpmsg = NULL;

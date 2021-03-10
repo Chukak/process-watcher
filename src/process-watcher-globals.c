@@ -8,14 +8,14 @@
 
 static const int SMALL_BUFFER_SIZE = 128;
 
-__attribute__((nothrow)) static void strrecreate(char **dst)
+DECLFUNC static void strrecreate(char **dst)
 {
   char *tmp = malloc(1 * sizeof(char));
   *tmp = '\0';
   *dst = tmp;
 }
 
-__attribute__((nothrow)) static int strrealloc(char **dst, int size)
+DECLFUNC static int strrealloc(char **dst, long unsigned int size)
 {
   char *allocated = realloc(*dst, size * sizeof(char) + 1);
   if (!allocated)
@@ -24,9 +24,9 @@ __attribute__((nothrow)) static int strrealloc(char **dst, int size)
   return 0;
 }
 
-__attribute__((nothrow)) void strconcat(char **dst, int count, ...)
+DECLFUNC void strconcat(char **dst, int count, ...)
 {
-  unsigned length = 0;
+  size_t length = 0;
   char *array;
   strrecreate(&array);
   va_list args;
@@ -46,7 +46,7 @@ __attribute__((nothrow)) void strconcat(char **dst, int count, ...)
   *dst = array;
 }
 
-__attribute__((nothrow)) long long freadall(const char *filename, char **dst)
+DECLFUNC long long freadall(const char *filename, char **dst)
 {
   long long bytes = 0, length = 0;
   FILE *file = fopen(filename, "r");
@@ -58,10 +58,10 @@ __attribute__((nothrow)) long long freadall(const char *filename, char **dst)
 
       char *array;
       strrecreate(&array);
-      if (strrealloc(&array, length) != 0)
+      if (strrealloc(&array, (size_t) length) != 0)
         break;
 
-      if ((bytes = fread(array, sizeof(char), length, file)) == length) {
+      if ((bytes = (long long) fread(array, sizeof(char), (size_t) length, file)) == length) {
         array[length] = '\0';
         *dst = array;
       }
@@ -72,13 +72,14 @@ __attribute__((nothrow)) long long freadall(const char *filename, char **dst)
   return bytes;
 }
 
-__attribute__((nothrow)) void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
+DECLFUNC ATTR(
+    nonnull(1, 3, 4)) void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
 {
-  int sublen = strlen(substr), // substring length
-      replen = strlen(repstr), // replacement length
-      extrastrlen = 0;         // length string before substring
+  size_t sublen = strlen(substr), // substring length
+      replen = strlen(repstr),    // replacement length
+      extrastrlen = 0;            // length string before substring
 
-  int newstr_len = 0;
+  size_t newstr_len = 0;
   char *newstr; // string with replacements
   strrecreate(&newstr);
   char *newstr_ptr = newstr; // pointer to the current end position in this string
@@ -89,7 +90,7 @@ __attribute__((nothrow)) void strreplace(const char *src, char **dst, const char
        src += extrastrlen + sublen,                                       // increare pointer to source string
        ++i) {
     // gets all characters before substring
-    extrastrlen = sub - src;
+    extrastrlen = (size_t)(sub - src);
 
     if (strrealloc(&newstr, newstr_len + extrastrlen) != 0) // increase memory to append string before substring
       return;
@@ -104,7 +105,7 @@ __attribute__((nothrow)) void strreplace(const char *src, char **dst, const char
     newstr_len += replen; // update length
   }
   // copy a remaining data
-  int src_remaining_len = strlen(src);
+  size_t src_remaining_len = strlen(src);
   if (strrealloc(&newstr, newstr_len + src_remaining_len) != 0)
     return;
   if (newstr_len == 0) {
@@ -120,19 +121,19 @@ __attribute__((nothrow)) void strreplace(const char *src, char **dst, const char
   *dst = newstr;
 }
 
-__attribute__((nothrow)) long long fgetall(const char *filename, char **dst)
+DECLFUNC long long fgetall(const char *filename, char **dst)
 {
   long long bytes = 0;
   FILE *file = fopen(filename, "r");
   if (file) {
     char *array = NULL;
     char buffer[SMALL_BUFFER_SIZE];
-    while (fgets(buffer, sizeof(buffer), file)) {
+    while (fgets(buffer, (int) sizeof(buffer), file)) {
       size_t length = strlen(buffer);
-      if (strrealloc(&array, bytes + length) != 0)
+      if (strrealloc(&array, (size_t) bytes + length) != 0)
         break;
-      strncpy(array + bytes, buffer, length);
-      bytes += length;
+      memcpy(array + bytes, buffer, length);
+      bytes += (long long) length;
     }
 
     if (array) {
@@ -146,17 +147,17 @@ __attribute__((nothrow)) long long fgetall(const char *filename, char **dst)
   return bytes;
 }
 
-__attribute__((nothrow)) static void tostr(void *p, char **dst, int typeid)
+DECLFUNC static void tostr(void *p, char **dst, int typeid)
 {
   char *array;
   strrecreate(&array);
-  int length;
+  size_t length;
   switch (typeid) {
   case 0:
-    length = snprintf(NULL, 0, "%d", *((int *) p));
+    length = (size_t) snprintf(NULL, 0, "%d", *((int *) p));
     break;
   case 1:
-    length = snprintf(NULL, 0, "%.3f", *((double *) p));
+    length = (size_t) snprintf(NULL, 0, "%.3f", *((double *) p));
     break;
   default:
     break;
@@ -183,12 +184,12 @@ __attribute__((nothrow)) static void tostr(void *p, char **dst, int typeid)
 #define __GET_TYPEID(x) _Generic((x), int : 0, double : 1, default : -1)
 #define TO_STR(n, dst) tostr(&n, dst, __GET_TYPEID(n))
 
-__attribute__((nothrow)) void itostr(int n, char **dst)
+DECLFUNC void itostr(int n, char **dst)
 {
   TO_STR(n, dst);
 }
 
-__attribute__((nothrow)) void ftostr(double n, char **dst)
+DECLFUNC void ftostr(double n, char **dst)
 {
   TO_STR(n, dst);
 }

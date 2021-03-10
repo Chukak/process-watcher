@@ -8,13 +8,13 @@
 #include <stdlib.h>
 
 static _Atomic bool Is_running = false;
-__attribute__((nothrow)) static void sighandler(int sig)
+DECLFUNC static void sighandler(int sig)
 {
   UNUSED(sig);
   Is_running = false;
 }
 
-__attribute__((nothrow)) int main(int argc, char** argv)
+DECLFUNC int main(int argc, char** argv)
 {
   UNUSED(argc);
   UNUSED(argv);
@@ -24,11 +24,10 @@ __attribute__((nothrow)) int main(int argc, char** argv)
 
   Cmd_args* args = Cmd_args_init(argc, argv);
   if (args->Valid) {
-    Process_stat* stat = NULL;
-    Process_stat_init(&stat);
+    Process_stat* stat = Process_stat_init();
 
     char* errormsg = NULL;
-    if (Process_stat_set_pid(&stat, args->Process_name, &errormsg)) {
+    if (Process_stat_set_pid(stat, args->Process_name, &errormsg)) {
       Is_running = true;
 
       Keys* keys = Keys_init();
@@ -38,7 +37,7 @@ __attribute__((nothrow)) int main(int argc, char** argv)
       Keys_start_handle(keys); // start process keys
       while (Is_running) {
         Window_refresh(mainwin, stat);
-        usleep(args->Refresh_timeout_ms * 1000); // usleep takes microseconds
+        usleep((unsigned int) (args->Refresh_timeout_ms * 1000)); // usleep takes microseconds
       }
 
       Is_running = false;
@@ -50,7 +49,7 @@ __attribute__((nothrow)) int main(int argc, char** argv)
     }
 
     free(errormsg);
-    Process_stat_free(&stat);
+    Process_stat_free(stat);
   } else {
     if (args->Errormsg)
       printf("%s\n", args->Errormsg);

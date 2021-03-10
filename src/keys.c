@@ -14,9 +14,9 @@ struct __Keys_thread
   _Atomic bool Running;          //! Thread status
 };
 
-__attribute__((nothrow)) static void *process_key(void *arg); // Forward declaration
+DECLFUNC static void *process_key(void *arg); // Forward declaration
 
-__attribute__((nothrow)) Keys *Keys_init()
+DECLFUNC ATTR(warn_unused_result) Keys *Keys_init()
 {
   Keys *k = malloc(sizeof(Keys));
   k->Error_msg = NULL;
@@ -28,48 +28,41 @@ __attribute__((nothrow)) Keys *Keys_init()
   return k;
 }
 
-__attribute__((nothrow)) void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
+DECLFUNC ATTR(nonnull(1, 2, 3)) void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
 {
-  if (k) {
-    k->__stat = stat;
-    k->__win = win;
-    k->__thrd = malloc(sizeof(struct __Keys_thread));
-  }
+  k->__stat = stat;
+  k->__win = win;
+  k->__thrd = malloc(sizeof(struct __Keys_thread));
 }
 
-__attribute__((nothrow)) void Keys_start_handle(Keys *k)
+DECLFUNC ATTR(nonnull(1)) void Keys_start_handle(Keys *k)
 {
-  if (k) {
-    keypad(k->__win->__p, true);
+  keypad(k->__win->__p, true);
 
-    pthread_mutexattr_init(&(k->__thrd->Mut_attrs));
-    pthread_mutexattr_settype(&(k->__thrd->Mut_attrs), PTHREAD_MUTEX_NORMAL);
+  pthread_mutexattr_init(&(k->__thrd->Mut_attrs));
+  pthread_mutexattr_settype(&(k->__thrd->Mut_attrs), PTHREAD_MUTEX_NORMAL);
 
-    pthread_mutex_init(&(k->__thrd->Mut), &(k->__thrd->Mut_attrs));
+  pthread_mutex_init(&(k->__thrd->Mut), &(k->__thrd->Mut_attrs));
 
-    k->__thrd->Running = true;
+  k->__thrd->Running = true;
 
-    pthread_create(&(k->__thrd->Thrd), NULL, process_key, k);
-  }
+  pthread_create(&(k->__thrd->Thrd), NULL, process_key, k);
 }
 
-__attribute__((nothrow)) void Keys_destroy(Keys *k)
+DECLFUNC ATTR(nonnull(1)) void Keys_destroy(Keys *k)
 {
-  if (k) {
-    k->__thrd->Running = false;
-    pthread_join(k->__thrd->Thrd, NULL);
+  k->__thrd->Running = false;
+  pthread_join(k->__thrd->Thrd, NULL);
 
-    pthread_mutexattr_destroy(&(k->__thrd->Mut_attrs));
-    pthread_mutex_destroy(&(k->__thrd->Mut));
+  pthread_mutexattr_destroy(&(k->__thrd->Mut_attrs));
+  pthread_mutex_destroy(&(k->__thrd->Mut));
 
-    free(k->__thrd);
-  }
+  free(k->__thrd);
 
   free(k);
-  k = NULL;
 }
 
-__attribute__((nothrow)) static void *process_key(void *arg)
+DECLFUNC static void *process_key(void *arg)
 {
   Keys *k = (Keys *) arg;
   if (!k)
@@ -80,7 +73,7 @@ __attribute__((nothrow)) static void *process_key(void *arg)
     case KEY_F(1) /* F1 */: {
       pthread_mutex_lock(&(k->__thrd->Mut));
 
-      if (k->Good && !Process_stat_kill(&(k->__stat), &k->Error_msg)) // TODO print errormsg
+      if (k->Good && !Process_stat_kill(k->__stat, &k->Error_msg)) // TODO print errormsg
         k->Good = false;
 
       Window_refresh(k->__win, k->__stat); // refresh

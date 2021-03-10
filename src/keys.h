@@ -25,7 +25,7 @@ typedef struct
  * initializes the new Keys structure with default values.
  * @return The pointer to the structure
  */
-__attribute__((nothrow)) Keys *Keys_init();
+DECLFUNC Keys *Keys_init() ATTR(warn_unused_result);
 /**
  * @brief Keys_set_args
  * Sets arguments required for the keys processing.
@@ -33,18 +33,18 @@ __attribute__((nothrow)) Keys *Keys_init();
  * @param stat The pointer to the Process_stat structure
  * @param win The pointer to the Window structure
  */
-__attribute__((nothrow)) void Keys_set_args(Keys *k, Process_stat *stat, Window *win);
+DECLFUNC void Keys_set_args(Keys *k, Process_stat *stat, Window *win) ATTR(nonnull(1, 2, 3));
 /**
  * @brief Keys_start_handle
  * Starts the keys processing in an another thread.
  * @param k The pointer to the Keys structure
  */
-__attribute__((nothrow)) void Keys_start_handle(Keys *k);
+DECLFUNC void Keys_start_handle(Keys *k) ATTR(nonnull(1));
 /**
  * @brief Keys_destroy
  * Deletes the Keys structure.
  * @param k The pointer to the Keys structure
  */
-__attribute__((nothrow)) void Keys_destroy(Keys *k);
+DECLFUNC void Keys_destroy(Keys *k) ATTR(nonnull(1));
 
 #endif // __KEYS_H

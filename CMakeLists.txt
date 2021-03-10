@@ -20,12 +20,14 @@ set(PRIVATE_HEADER_FILES
     src/process-watcher-globals.h
     src/window.h
     src/cmdargs.h
-    src/keys.h)
+    src/keys.h
+    src/props.h)
 set(PUBLIC_HEADER_FILES
     include/process.h)
 
 set(C_PROJECT_COMPILE_FLAGS
-    -Wextra -Wall -Wshadow -Wcast-align -Wwrite-strings -Wuninitialized -std=gnu11)
+    -Wextra -Wall -Wshadow -Wcast-align -Wwrite-strings -Wuninitialized -std=gnu11 -Wundef -Wconversion
+    -Wunreachable-code)
 set(C_PROJECT_LINK_FLAGS
     )
 set(C_PROJECT_COMPILE_DEFINITIONS
@@ -33,6 +35,8 @@ set(C_PROJECT_COMPILE_DEFINITIONS
 if (TESTS_ENABLED AND UNIX)
     list(APPEND C_PROJECT_COMPILE_FLAGS -g -fno-omit-frame-pointer -fsanitize=address)
     list(APPEND C_PROJECT_LINK_FLAGS -lasan)
+else()
+    list(APPEND C_PROJECT_COMPILE_FLAGS -O3)
 endif()
 
 add_executable(${PROJECT_NAME}

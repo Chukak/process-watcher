@@ -18,19 +18,19 @@ typedef struct
  * Initializes the new Window structure with default values.
  * @return The pointer to the structure
  */
-__attribute__((nothrow)) Window* Window_init();
+DECLFUNC Window* Window_init() ATTR(warn_unused_result);
 /**
  * @brief Window_refresh
  * Refresh the main window with data.
  * @param win The pointer to the Window structure
  * @param proc_stat The pointer to the Process_stat structure
  */
-__attribute__((nothrow)) void Window_refresh(Window* win, Process_stat* proc_stat);
+DECLFUNC void Window_refresh(Window* win, Process_stat* proc_stat) ATTR(nonnull(1, 2));
 /**
  * @brief Window_destroy
  * Deletes the Window structure.
  * @param win The pointer to the structure
  */
-__attribute__((nothrow)) void Window_destroy(Window* win);
+DECLFUNC void Window_destroy(Window* win) ATTR(nonnull(1));
 
 #endif // __WINDOW_H

@@ -1,18 +1,19 @@
 #ifndef __CMDARGS_H
 #define __CMDARGS_H
 
+#include "props.h"
 #include <stdbool.h>
 
 /**
  @brief Cmd_args
- * Stores arguments from command line. Contains the process name, error message (if and error occurred), the timeout to
+ * Stores arguments from command line. Contains the process name, error message (if an error occurred), the timeout to
  refresh the process information.
  */
 typedef struct
 {
   bool Valid;
   char* Process_name;
-  int Refresh_timeout_ms;
+  long int Refresh_timeout_ms;
   char* Errormsg;
 } Cmd_args;
 
@@ -23,17 +24,17 @@ typedef struct
  * @param argv Array with arguments
  * @return The pointer to the structure
  */
-__attribute__((nothrow)) Cmd_args* Cmd_args_init(int argc, char** argv);
+DECLFUNC Cmd_args* Cmd_args_init(int argc, char** argv) ATTR(warn_unused_result);
 /**
  * @brief Cmd_args_free
  * Deletes the Cmd_args structure.
  * @param args The pointer to the structure
  */
-__attribute__((nothrow)) void Cmd_args_free(Cmd_args* args);
+DECLFUNC void Cmd_args_free(Cmd_args* args) ATTR(nonnull(1));
 /**
  * @brief print_help
  * Prints the help information.
  */
-__attribute__((nothrow)) void print_help();
+DECLFUNC void print_help();
 
 #endif // __CMDARGS_H

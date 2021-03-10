@@ -18,7 +18,7 @@ __attribute__((nothrow)) static int get_real_pid(const char *name)
   assert(pipe != NULL);
   if (fgets(buf, 512, pipe) != NULL) {
     pclose(pipe);
-    pid = strtol(buf, NULL, 10);
+    pid = (int) strtol(buf, NULL, 10);
   }
   return pid;
 }
@@ -89,12 +89,11 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     int actualPid = get_real_pid("testprocess");
     assert(actualPid > 0);
 
-    Process_stat *statobj = NULL;
-    Process_stat_init(&statobj);
+    Process_stat *statobj = Process_stat_init();
     CHECK_NE(statobj, NULL);
 
     char *errormsg = NULL;
-    CHECK_EQ(Process_stat_set_pid(&statobj, "testprocess", &errormsg), true);
+    CHECK_EQ(Process_stat_set_pid(statobj, "testprocess", &errormsg), true);
     CHECK_EQ(statobj->Pid, actualPid);
     CHECK_STR_EQ(statobj->Process_name, "testprocess");
     CHECK_EQ(statobj->State, 'U'); // Unknown state
@@ -105,12 +104,12 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_EQ(statobj->Username, NULL);
     CHECK_EQ(statobj->Killed, false);
 
-    CHECK_EQ(Process_stat_update(&statobj, &errormsg), true);
+    CHECK_EQ(Process_stat_update(statobj, &errormsg), true);
     CHECK_EQ(statobj->Pid, actualPid);
 
     SLEEP_SEC(8);
 
-    CHECK_EQ(Process_stat_update(&statobj, &errormsg), true);
+    CHECK_EQ(Process_stat_update(statobj, &errormsg), true);
     CHECK_EQ(statobj->Pid, actualPid);
     CHECK_EQ(statobj->State, 'R'); // Running state
     CHECK_GT(statobj->Cpu_usage, 0.0);
@@ -124,8 +123,8 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     CHECK_NE(statobj->Username, NULL);
     CHECK_EQ(statobj->Killed, false);
 
-    CHECK_EQ(Process_stat_kill(&statobj, &errormsg), true);   // kill
-    CHECK_EQ(Process_stat_update(&statobj, &errormsg), true); // refresh
+    CHECK_EQ(Process_stat_kill(statobj, &errormsg), true);   // kill
+    CHECK_EQ(Process_stat_update(statobj, &errormsg), true); // refresh
     CHECK_EQ(statobj->Pid, actualPid);
     CHECK_EQ(statobj->State, 'K'); // Running state
     CHECK_EQ(statobj->Cpu_usage, 0.0);
@@ -143,8 +142,7 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     SLEEP_SEC(2);
     CHECK_LT(getpgid(actualPid), 0);
 
-    Process_stat_free(&statobj);
-    CHECK_EQ(statobj, NULL);
+    Process_stat_free(statobj);
 
     {
       if (getpgid(actualPid) >= 0)
@@ -152,5 +150,5 @@ TEST_CASE(Process, ProcessStatStructureUsage)
     }
   }
   clean_temp_files();
-  remove("testprocess");
+  // remove("testprocess");
 }

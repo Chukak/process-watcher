@@ -6,17 +6,17 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-static const int DEFAULT_PAIR = 1; // default color pair id
-static const int HEADER_PAIR = 2;  // line color pair id
-static const int LOW_CPU_USAGE = 3;
-static const int MEDIUM_CPU_USAGE = 4;
-static const int HARD_CPU_USAGE = 5;
-static const int MENU_PAIR = 6;
+static const short int DEFAULT_PAIR = 1; // default color pair id
+static const short int HEADER_PAIR = 2;  // line color pair id
+static const short int LOW_CPU_USAGE = 3;
+static const short int MEDIUM_CPU_USAGE = 4;
+static const short int HARD_CPU_USAGE = 5;
+static const short int MENU_PAIR = 6;
 
 static const int MAX_CPU_VALUE_LENGTH =
     7; // max CPU value if XXX.XXX (example 100.121), 3 digits + dot + 3 digits as precision
 
-__attribute__((nothrow)) Window *Window_init()
+DECLFUNC ATTR(warn_unused_result) Window *Window_init()
 {
   Window *win = malloc(sizeof(Window));
 
@@ -42,7 +42,7 @@ __attribute__((nothrow)) Window *Window_init()
   return win;
 }
 
-__attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int termX, int termY)
+DECLFUNC static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
 
@@ -60,11 +60,11 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *p
     attron(COLOR_PAIR(HEADER_PAIR));
     mvwaddstr(win->__p, cursY, cursX, hdrcpu);
     attroff(COLOR_PAIR(HEADER_PAIR));
-    cursX += strlen(hdrcpu);
+    cursX += (int) strlen(hdrcpu);
 
     {
       // whitespaces
-      int spcount = MAX_CPU_VALUE_LENGTH - strlen(cpu_str);
+      int spcount = MAX_CPU_VALUE_LENGTH - (int) strlen(cpu_str);
       char spaces[spcount + 1];
       spaces[0] = '\0';
 
@@ -77,7 +77,7 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *p
     attron(COLOR_PAIR(DEFAULT_PAIR));
     mvwaddstr(win->__p, cursY, cursX, hdrcpuoffset);
     attroff(COLOR_PAIR(DEFAULT_PAIR));
-    cursX += strlen(hdrcpuoffset);
+    cursX += (int) strlen(hdrcpuoffset);
 
     free(cpu_str);
     free(hdrcpuoffset);
@@ -85,7 +85,7 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *p
   {
     // print cpu usage bar
     int len_CPUbar = termX - (cursX + roffsetX);
-    int len_fillbar = len_CPUbar * (proc_stat->Cpu_usage / 100);
+    int len_fillbar = len_CPUbar * (int) (proc_stat->Cpu_usage / 100);
     for (int j = 0; j < len_CPUbar; ++j) {
       if (j > len_fillbar)
         break;
@@ -113,7 +113,7 @@ __attribute__((nothrow)) static void draw_CPU_usage(Window *win, Process_stat *p
   free(hdrcpu);
 }
 
-__attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, int termY)
+DECLFUNC static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
   UNUSED(termX);
@@ -215,7 +215,7 @@ __attribute__((nothrow)) static void draw_process_info(Window *win, Process_stat
   }
 }
 
-__attribute__((nothrow)) static void draw_menu(Window *win, int termX, int termY)
+DECLFUNC static void draw_menu(Window *win, int termX, int termY)
 {
   UNUSED(termX);
 
@@ -229,7 +229,7 @@ __attribute__((nothrow)) static void draw_menu(Window *win, int termX, int termY
     char *hdr = NULL;
     strconcat(&hdr, 2, SAFE_PASS_VARGS(" F1 - Kill process "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
-    cursX += loffsetX + strlen(hdr);
+    cursX += loffsetX + (int) strlen(hdr);
     free(hdr);
 
     strconcat(&hdr, 2, SAFE_PASS_VARGS(" F4 - Exit "));
@@ -241,7 +241,7 @@ __attribute__((nothrow)) static void draw_menu(Window *win, int termX, int termY
   }
 }
 
-__attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_stat)
+DECLFUNC ATTR(nonnull(1, 2)) void Window_refresh(Window *win, Process_stat *proc_stat)
 {
   int x = 0, y = 0;
   {
@@ -260,7 +260,7 @@ __attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_sta
   clear();
 
   char *errormsg = NULL;
-  if (!Process_stat_update(&proc_stat, &errormsg)) {
+  if (!Process_stat_update(proc_stat, &errormsg)) {
     printw("%s\n", errormsg);
     free(errormsg);
     return;
@@ -271,7 +271,7 @@ __attribute__((nothrow)) void Window_refresh(Window *win, Process_stat *proc_sta
   draw_menu(win, x, y);
 }
 
-__attribute__((nothrow)) void Window_destroy(Window *win)
+DECLFUNC ATTR(nonnull(1)) void Window_destroy(Window *win)
 {
   endwin(); // remove ncurses WINDOW
 
