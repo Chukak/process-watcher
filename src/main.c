@@ -1,6 +1,7 @@
 #include "process-watcher-globals.h"
 #include "window.h"
 #include "process.h"
+#include "keys.h"
 #include "cmdargs.h"
 #include <unistd.h>
 #include <signal.h>
@@ -30,7 +31,11 @@ __attribute__((nothrow)) int main(int argc, char** argv)
     if (Process_stat_set_pid(&stat, args->Process_name, &errormsg)) {
       Is_running = true;
 
+      Keys* keys = Keys_init();
       Window* mainwin = Window_init();
+
+      Keys_set_args(keys, stat, mainwin);
+      Keys_start_handle(keys); // start process keys
       while (Is_running) {
         Window_refresh(mainwin, stat);
         usleep(args->Refresh_timeout_ms * 1000); // usleep takes microseconds
@@ -38,6 +43,7 @@ __attribute__((nothrow)) int main(int argc, char** argv)
 
       Is_running = false;
       Window_destroy(mainwin);
+      Keys_destroy(keys);
     } else {
       if (errormsg)
         printf("%s\n", errormsg);

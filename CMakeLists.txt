@@ -5,17 +5,22 @@ project(process-watcher LANGUAGES C)
 find_library(NCURSES_LIBRARIES
     NAMES ncurses
     REQUIRED)
+find_library(PTHREAD_LIBRARIES
+    NAMES pthread
+    REQUIRED)
 
 set(SOURCE_FILES
     src/main.c
     src/process-watcher-globals.c
     src/process.c
     src/window.c
-    src/cmdargs.c)
+    src/cmdargs.c
+    src/keys.c)
 set(PRIVATE_HEADER_FILES
     src/process-watcher-globals.h
     src/window.h
-    src/cmdargs.h)
+    src/cmdargs.h
+    src/keys.h)
 set(PUBLIC_HEADER_FILES
     include/process.h)
 
@@ -33,7 +38,7 @@ endif()
 add_executable(${PROJECT_NAME}
     ${SOURCE_FILES} ${PRIVATE_HEADER_FILES} ${PUBLIC_HEADER_FILES})
 target_compile_options(${PROJECT_NAME} PUBLIC ${C_PROJECT_COMPILE_FLAGS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${C_PROJECT_LINK_FLAGS} ${NCURSES_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${C_PROJECT_LINK_FLAGS} ${NCURSES_LIBRARIES} ${PTHREAD_LIBRARIES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${C_PROJECT_COMPILE_DEFINITIONS})
 target_include_directories(${PROJECT_NAME} PRIVATE src PUBLIC include)
 
@@ -62,7 +67,7 @@ if (TESTS_ENABLED)
         ${SOURCE_FILES} ${PRIVATE_HEADER_FILES} ${PUBLIC_HEADER_FILES}
         ${TEST_SOURCE_FILES} ${TEST_HEADER_FILES})
     target_compile_options(${PROJECT_TEST_NAME} PRIVATE ${C_PROJECT_COMPILE_FLAGS})
-    target_link_libraries(${PROJECT_TEST_NAME} PRIVATE ${C_PROJECT_LINK_FLAGS} ${NCURSES_LIBRARIES})
+    target_link_libraries(${PROJECT_TEST_NAME} PRIVATE ${C_PROJECT_LINK_FLAGS} ${NCURSES_LIBRARIES} ${PTHREAD_LIBRARIES})
     target_compile_definitions(${PROJECT_TEST_NAME} PUBLIC ${C_PROJECT_COMPILE_DEFINITIONS})
     target_include_directories(${PROJECT_TEST_NAME} PRIVATE src PUBLIC include)
 endif()
