@@ -2,23 +2,35 @@
 
 #include "process-watcher-globals.h"
 
-#include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
-#include <libgen.h>
-#include <unistd.h>
-#include <linux/limits.h>
+
 #include <stdio.h>
 #include <errno.h>
 #include <math.h>
 #include <time.h>
+
+#include <signal.h>
+
+#ifdef __linux__
+#include <libgen.h>
+#include <unistd.h>
+#include <linux/limits.h>
 #include <pwd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <signal.h>
+#include <dirent.h>
+#elif _WIN32
+#include <Windows.h>
+#include <TlHelp32.h>
+#include <tchar.h>
+#include <Psapi.h>
+#include <sysinfoapi.h>
+#endif
 
 #define MAX(a, b) (a > b ? a : b)
 
+#ifdef __linux__
 static const char* SYSTEM_PATH_SEPARATOR = "/"; // only linux
 
 static const char* PROC_DIRECTORY_PATH = "/proc";
@@ -27,16 +39,45 @@ static const char* EXE_FILENAME = "exe";
 static const char* STAT_FILENAME = "stat";
 
 static const int PAGESIZE_DIV_VALUE = 1024;
+#endif
 
-static const int STATE_BUFFER_SIZE = 256;
+#define STATE_BUFFER_SIZE 256
+
+#ifdef _WIN32
+#define TOKEN_INFORMATION_SIZE 512
+#endif
 
 static const char* TIME_FORMAT = "%02d:%02d:%02d";
 static const int TIME_STR_LENGTH = 8;
 
+#ifdef _WIN32
+DECLFUNC static unsigned long long ft2ull(const FILETIME* ft)
+{
+  ULARGE_INTEGER i;
+  i.LowPart = ft->dwLowDateTime;
+  i.HighPart = ft->dwHighDateTime;
+  return (unsigned long long) i.QuadPart;
+}
+#endif
+
+DECLFUNC static double Cpu_usage_calculate(unsigned long long utime,
+                                           unsigned long long last_utime,
+                                           unsigned long long stime,
+                                           unsigned long long last_stime,
+                                           unsigned long long ttime,
+                                           unsigned long long last_ttime)
+{
+  double totalCoefficient = (double) (ttime - last_ttime);
+  if (totalCoefficient != 0)
+    return (fabs(100.0 * ((double) (utime - last_utime)) / totalCoefficient) +
+            fabs(100.0 * ((double) (stime - last_stime)) / totalCoefficient));
+  return 0.0;
+}
+
 DECLFUNC int pid_by_name(const char* name)
 {
   int pid = -1;
-
+#ifdef __linux__
   DIR* proc_dir = opendir(PROC_DIRECTORY_PATH);
   if (proc_dir) {
     struct dirent* dirp;
@@ -92,6 +133,26 @@ DECLFUNC int pid_by_name(const char* name)
     }
     closedir(proc_dir);
   }
+#elif _WIN32
+  PROCESSENTRY32 entry;
+  entry.dwSize = sizeof(PROCESSENTRY32);
+  // get current snapshot
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0 /* it is ignored */);
+  if (Process32First(snapshot, &entry)) { // copy process list
+    while (pid == -1 && Process32Next(snapshot, &entry)) {
+      // try to find using fullname
+      if (strcmp(entry.szExeFile, name) == 0)
+        pid = (int) entry.th32ProcessID;
+      else { // try to find without .exe suffix
+        char* processname = NULL;
+        strreplace(entry.szExeFile, &processname, ".exe", "", 1);
+        if (strcmp(processname, name) == 0)
+          pid = (int) entry.th32ProcessID;
+      }
+    }
+  }
+  CloseHandle(snapshot);
+#endif
   return pid;
 }
 
@@ -100,12 +161,14 @@ DECLFUNC ATTR(warn_unused_result) Process_stat* Process_stat_init()
   Process_stat* stat;
 
   stat = malloc(sizeof(Process_stat));
+  ASSERT(stat != NULL, "stat (Process_stat*) != NULL; malloc(...) returns NULL.");
   stat->Process_name = NULL;
   stat->Pid = -1;
   stat->State = 'U'; // Unknown state
 
   stat->State_fullname = malloc(sizeof(char) * 7 + 1);
-  strcpy(stat->State_fullname, "Unknown\0");
+  ASSERT(stat->State_fullname != NULL, "stat->State_fullname (char*) != NULL; malloc(...) returns NULL.");
+  strcpy(stat->State_fullname, "Unknown");
 
   stat->Priority = 0;
   stat->Cpu_usage = 0.0;
@@ -114,27 +177,36 @@ DECLFUNC ATTR(warn_unused_result) Process_stat* Process_stat_init()
   stat->Memory_peak_usage = 0.0;
 
   stat->Start_time = malloc(sizeof(char) * (size_t) TIME_STR_LENGTH + 1);
-  strcpy(stat->Start_time, "00:00:00\0");
+  ASSERT(stat->Start_time != NULL, "stat->Start_time (char*) != NULL; malloc(...) returns NULL.");
+  strcpy(stat->Start_time, "00:00:00");
 
   stat->Time_usage = malloc(sizeof(char) * (size_t) TIME_STR_LENGTH + 1);
-  strcpy(stat->Time_usage, "00:00:00\0");
+  ASSERT(stat->Time_usage != NULL, "stat->Time_usage (char*) != NULL; malloc(...) returns NULL.");
+  strcpy(stat->Time_usage, "00:00:00");
 
+#ifdef __linux__
   stat->Uid = -1;
+#endif
   stat->Username = NULL;
   stat->Killed = false;
   // private
-  stat->__last_utime = 0.0;
-  stat->__last_stime = 0.0;
-  stat->__last_total = 0.0;
+  stat->__last_utime = 0;
+  stat->__last_stime = 0;
+  stat->__last_total = 0;
   stat->__last_starttime = 0;
+#ifdef __linux__
   stat->__last_btime = 0;
-
+#endif
+#ifdef _WIN32
+  stat->__phandle = NULL;
+#endif
   return stat;
 }
 
 DECLFUNC ATTR(nonnull(1, 2)) bool Process_stat_set_pid(Process_stat* stat, const char* processname, char** errormsg)
 {
   stat->Process_name = malloc(strlen(processname) * sizeof(char) + 1);
+  ASSERT(stat->Process_name != NULL, "stat->Process_name (char*) != NULL; malloc(...) returns NULL.");
   strcpy(stat->Process_name, processname);
 
   int pid;
@@ -148,6 +220,14 @@ DECLFUNC ATTR(nonnull(1, 2)) bool Process_stat_set_pid(Process_stat* stat, const
   }
 
   stat->Pid = pid;
+
+#ifdef _WIN32
+  stat->__phandle = (void*) OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD) stat->Pid);
+  if (!stat->__phandle) { // TODO: show last error
+    strconcat(errormsg, 1, SAFE_PASS_VARGS("OpenProcess returns NULL."));
+    return false;
+  }
+#endif
   return true;
 }
 
@@ -160,7 +240,7 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
     strconcat(errormsg, 5, SAFE_PASS_VARGS("Invalid PID '", str_pid, "' for process '", pstat->Process_name, "'"));
     return false;
   }
-
+#ifdef __linux__
   // common variables
   size_t utimepid, stimepid;
   long int rsspid;
@@ -231,9 +311,63 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
     free(pidstatpath);
     free(pidstatcache);
   }
+#elif _WIN32
+  if (success && !pstat->Killed) {
+    HANDLE token;
+    if (!OpenProcessToken((HANDLE) pstat->__phandle, TOKEN_QUERY, &token)) {
+      success = false;
+      strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to get the token of process '", pstat->Process_name, "'."));
+    } else {
+      char tokbuf[TOKEN_INFORMATION_SIZE], username[TOKEN_INFORMATION_SIZE], domain[TOKEN_INFORMATION_SIZE];
+      DWORD length, domain_len = TOKEN_INFORMATION_SIZE;
+      SID_NAME_USE sid_name;
+      if (GetTokenInformation(token, TokenUser, &tokbuf, TOKEN_INFORMATION_SIZE, &length)) {
+        PTOKEN_USER ptokuser = (TOKEN_USER*) tokbuf;
+        length = TOKEN_INFORMATION_SIZE;
+
+        UNUSED(domain);
+        UNUSED(domain_len);
+        UNUSED(sid_name);
+        if (LookupAccountSidA((LPCSTR) NULL, ptokuser->User.Sid, username, &length, domain, &domain_len, &sid_name)) {
+          // TODO: uid?
+          pstat->Username = malloc(sizeof(char) * length);
+          ASSERT(pstat->Username != NULL, "pstat->Username (char*) != NULL; malloc(...) returns NULL.");
+          strcpy(pstat->Username, username);
+        } else {
+          success = false;
+          strconcat(errormsg, 1, SAFE_PASS_VARGS("Unable to get the account information."));
+        }
+      } else {
+        success = false;
+        strconcat(errormsg,
+                  3,
+                  SAFE_PASS_VARGS("Unable to get token information about process '", pstat->Process_name, "'."));
+      }
+    }
+
+    if (!success) {
+      free(pstat->Username);
+      pstat->Username = NULL;
+    }
+    if (token)
+      CloseHandle(token);
+
+    if (success) {
+      // process status
+      DWORD pstatus;
+      if (GetExitCodeProcess(pstat->__phandle, &pstatus)) {
+        if (pstatus == STILL_ACTIVE)
+          pstat->State = 'R';
+        else
+          pstat->State = 'T'; // stopped
+      }
+    }
+  }
+#endif
 
   if (success) {
     char statestr[STATE_BUFFER_SIZE];
+    statestr[0] = '\0';
     switch (pstat->State) {
     case 'U':
       strcpy(statestr, "Unknown");
@@ -241,12 +375,14 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
     case 'R':
       strcpy(statestr, "Running");
       break;
+#ifdef __linux__
     case 'S':
       strcpy(statestr, "Sleeping");
       break;
     case 'Z':
       strcpy(statestr, "Zombie");
       break;
+#endif
     case 'T':
       strcpy(statestr, "Stopped");
       break;
@@ -259,10 +395,12 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
       free(pstat->State_fullname);
 
     pstat->State_fullname = malloc(sizeof(char) * strlen(statestr) + 1);
+    ASSERT(pstat->State_fullname != NULL, "stat->State_fullname (char*) != NULL; malloc(...) returns NULL.");
     strcpy(pstat->State_fullname, statestr);
   }
 
   if (success && !pstat->Killed) {
+#ifdef __linux__
     char* statpath = NULL;
     strconcat(&statpath, 3, SAFE_PASS_VARGS(PROC_DIRECTORY_PATH, SYSTEM_PATH_SEPARATOR, STAT_FILENAME));
 
@@ -292,12 +430,8 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
           strconcat(errormsg, 3, SAFE_PASS_VARGS("Invalid data in the file '", statpath, "'"));
         } else {
           // calculate cpu usage
-          double totalCoefficient = (double) (total - pstat->__last_total);
-          if (totalCoefficient != 0)
-            pstat->Cpu_usage = (fabs(100.0 * ((double) (utimepid - pstat->__last_utime)) / totalCoefficient) +
-                                fabs(100.0 * ((double) (stimepid - pstat->__last_stime)) / totalCoefficient));
-          else
-            pstat->Cpu_usage = 0;
+          pstat->Cpu_usage = Cpu_usage_calculate(
+              utimepid, pstat->__last_utime, stimepid, pstat->__last_stime, total, pstat->__last_total);
 
           pstat->Cpu_peak_usage = MAX(pstat->Cpu_peak_usage, pstat->Cpu_usage);
 
@@ -316,28 +450,78 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
       free(statpath);
       free(statcache);
     }
+#elif _WIN32
+    unsigned long long total_time;
+    {
+      FILETIME ftime;
+      GetSystemTimeAsFileTime(&ftime);
+      total_time = ft2ull(&ftime);
+      if (total_time == 0) {
+        success = false;
+        strconcat(errormsg, 1, SAFE_PASS_VARGS("Unable to get the system information for CPU."));
+        // TODO: total_time == 0, it is error?
+      }
+    }
+
+    FILETIME begin_time, end_time, fsys_time, fuser_time;
+    if (GetProcessTimes((HANDLE) pstat->__phandle, &begin_time, &end_time, &fsys_time, &fuser_time)) {
+      unsigned long long sys_time = ft2ull(&fsys_time), user_time = ft2ull(&fuser_time);
+      // TODO: maybe divide this value on num threads/cores
+      pstat->Cpu_usage = Cpu_usage_calculate(
+          user_time, pstat->__last_utime, sys_time, pstat->__last_stime, total_time, pstat->__last_total);
+
+      pstat->Cpu_peak_usage = MAX(pstat->Cpu_peak_usage, pstat->Cpu_usage);
+
+      pstat->__last_utime = user_time;
+      pstat->__last_stime = sys_time;
+      pstat->__last_total = total_time;
+
+      pstat->__last_starttime = ft2ull(&begin_time) / (unsigned long long) 1e7; // convert to ms
+    }
+#endif
   }
 
   if (success && !pstat->Killed) {
+#ifdef __linux__
     // calculate memory usage
     long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
     pstat->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
 
     pstat->Memory_peak_usage = MAX(pstat->Memory_peak_usage, pstat->Memory_usage);
+#elif _WIN32
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    GetProcessMemoryInfo(pstat->__phandle, (PPROCESS_MEMORY_COUNTERS) &pmc, sizeof(pmc));
+    pstat->Memory_usage = (double) (pmc.WorkingSetSize / 1024 / 1024); // TODO: check values, are correct?
+    pstat->Memory_peak_usage = (double) (pmc.PeakWorkingSetSize / 1024 / 1024);
+#endif
   }
 
   if (success && !pstat->Killed) {
     // calculate time
     struct tm buf;
-
-    time_t process_starttime = pstat->__last_btime + pstat->__last_starttime / sysconf(_SC_CLK_TCK);
+#ifdef __linux__
+    time_t process_starttime = (time_t)(pstat->__last_btime + pstat->__last_starttime / sysconf(_SC_CLK_TCK);
+#elif _WIN32
+    time_t process_starttime = (time_t) pstat->__last_starttime;
+#endif
+#ifdef __linux__
     localtime_r(&process_starttime, &buf);
+#elif _WIN32
+    localtime_s(&buf, &process_starttime);
+#endif
     sprintf(pstat->Start_time, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
     pstat->Start_time[TIME_STR_LENGTH] = '\0';
-
+#ifdef __linux__
     time_t process_usagetime = time(0) - process_starttime;
+#elif _WIN32
+    time_t process_usagetime = time(0) - process_starttime / 1000; // convert to seconds
+#endif
     // we need duration instead of current localtime
+#ifdef __linux__
     gmtime_r(&process_usagetime, &buf);
+#elif _WIN32
+    gmtime_s(&buf, &process_usagetime);
+#endif
     sprintf(pstat->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
     pstat->Time_usage[TIME_STR_LENGTH] = '\0';
   }
@@ -364,8 +548,14 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_kill(Process_stat* stat, char** erro
     char* str_pid = NULL;
     itostr(stat->Pid, &str_pid);
 
-    int status = kill(stat->Pid, SIGKILL);
+    int status;
+#ifdef __linux__
+    status = kill(stat->Pid, SIGKILL);
     if (status != 0) {
+#elif _WIN32
+    status = TerminateProcess((HANDLE) stat->__phandle, 1);
+    if (status == 0) {
+#endif
       strconcat(errormsg,
                 7,
                 SAFE_PASS_VARGS("Unable to kill '", stat->Process_name, "' (", str_pid, "): ", strerror(errno), "."));
@@ -377,13 +567,18 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_kill(Process_stat* stat, char** erro
     stat->Cpu_usage = 0.0;
     stat->Memory_usage = 0.0;
     stat->Priority = 0;
-
+#ifdef _WIN32
+    CloseHandle((HANDLE) stat->__phandle);
+#endif
     {
       // length of ' (Killed)' message is 9
-      char* allocated = realloc(stat->Process_name, (strlen(stat->Process_name) + 9) * sizeof(char) + 1);
-      if (allocated) {
-        stat->Process_name = allocated;
-        strcat(stat->Process_name, " (Killed)");
+      int pname_len = (int) strlen(stat->Process_name);
+      if (pname_len > 0) {
+        char* allocated = realloc(stat->Process_name, ((size_t) pname_len + 9) * sizeof(char) + 1);
+        if (allocated) {
+          stat->Process_name = allocated;
+          strcat(stat->Process_name, " (Killed)");
+        }
       }
     }
 

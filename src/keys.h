@@ -1,7 +1,7 @@
 #ifndef __KEYS_H
 #define __KEYS_H
 
-#include "window.h"
+#include "twindow.h"
 #include "process.h"
 
 struct __Keys_thread; // Forward declaration

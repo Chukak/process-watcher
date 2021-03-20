@@ -39,3 +39,8 @@
 
 # Cmake user configurations
 *.user
+
+# Windows
+.vs
+out
+CMakeSettings.json

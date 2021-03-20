@@ -34,15 +34,22 @@ typedef struct
   double Memory_peak_usage; //! Memory peak usage
   char* Start_time;         //! Start time
   char* Time_usage;         //! Work time
-  int Uid;                  //! Uid
-  char* Username;           //! User name
+#ifdef __linux__
+  int Uid; //! Uid
+#endif
+  char* Username; //! User name
   bool Killed;
   // private fields
-  unsigned long __last_utime;
-  unsigned long __last_stime;
-  unsigned long __last_total;
-  long int __last_starttime;
-  long int __last_btime;
+  unsigned long long __last_utime;
+  unsigned long long __last_stime;
+  unsigned long long __last_total;
+  unsigned long long __last_starttime;
+#ifdef __linux__
+  unsigned long long __last_btime;
+#endif
+#ifdef _WIN32
+  void* __phandle;
+#endif
 } Process_stat;
 
 /**

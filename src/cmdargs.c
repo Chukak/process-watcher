@@ -11,6 +11,7 @@ static const int INCORRECT_REFRESH_TIMEOUT_MS = -1;
 DECLFUNC ATTR(warn_unused_result) Cmd_args* Cmd_args_init(int argc, char** argv)
 {
   Cmd_args* cmdargs = malloc(sizeof(Cmd_args));
+  ASSERT(cmdargs != NULL, "cmdargs (CmdArgs*) != NULL; malloc(...) returns NULL.");
   cmdargs->Valid = argc > 1;
   cmdargs->Process_name = NULL;
   cmdargs->Errormsg = NULL;

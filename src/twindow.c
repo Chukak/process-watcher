@@ -1,10 +1,14 @@
-#include "window.h"
+#include "twindow.h"
 #include "process-watcher-globals.h"
 
 #include <string.h>
 #include <stdlib.h>
+#ifdef __linux__
 #include <sys/ioctl.h>
 #include <unistd.h>
+#elif _WIN32
+#include <Windows.h>
+#endif
 
 static const short int DEFAULT_PAIR = 1; // default color pair id
 static const short int HEADER_PAIR = 2;  // line color pair id
@@ -19,7 +23,7 @@ static const int MAX_CPU_VALUE_LENGTH =
 DECLFUNC ATTR(warn_unused_result) Window *Window_init()
 {
   Window *win = malloc(sizeof(Window));
-
+  ASSERT(win != NULL, "win (Window*) != NULL; malloc(...) returns NULL.");
   win->__p = initscr(); // init ncurses WINDOW
 
   clear();
@@ -27,9 +31,10 @@ DECLFUNC ATTR(warn_unused_result) Window *Window_init()
   noecho();
   cbreak();
   nodelay(win->__p, true); // non-blocking getch
-  refresh();
+  wrefresh(win->__p);
 
-  start_color();
+  if (has_colors()) // TODO: if no colors?
+    start_color();
 
   //        {    id    }  {foreground} {background}
   init_pair(DEFAULT_PAIR, COLOR_WHITE, COLOR_BLACK);
@@ -37,7 +42,11 @@ DECLFUNC ATTR(warn_unused_result) Window *Window_init()
   init_pair(LOW_CPU_USAGE, COLOR_GREEN, COLOR_BLACK);
   init_pair(MEDIUM_CPU_USAGE, COLOR_YELLOW, COLOR_BLACK);
   init_pair(HARD_CPU_USAGE, COLOR_RED, COLOR_BLACK);
+#ifdef __linux__
   init_pair(MENU_PAIR, COLOR_BLACK, COLOR_MAGENTA);
+#elif _WIN32
+  init_pair(MENU_PAIR, COLOR_WHITE, COLOR_BLACK);
+#endif
 
   return win;
 }
@@ -65,15 +74,16 @@ DECLFUNC static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int te
     {
       // whitespaces
       int spcount = MAX_CPU_VALUE_LENGTH - (int) strlen(cpu_str);
-      char spaces[spcount + 1];
+      char *spaces = malloc(sizeof(char) * (size_t) spcount + 1);
+      ASSERT(spaces != NULL, "spaces (char*) != NULL; malloc(...) returns NULL.");
       spaces[0] = '\0';
 
       while (spcount-- > 1)
         strcat(spaces, " ");
 
       strconcat(&hdrcpuoffset, 2, SAFE_PASS_VARGS(spaces, "["));
+      free(spaces);
     }
-
     attron(COLOR_PAIR(DEFAULT_PAIR));
     mvwaddstr(win->__p, cursY, cursX, hdrcpuoffset);
     attroff(COLOR_PAIR(DEFAULT_PAIR));
@@ -179,8 +189,12 @@ DECLFUNC static void draw_process_info(Window *win, Process_stat *proc_stat, int
     cursY++;
     free(hdr);
 
+#ifdef _WIN32
+    strconcat(&hdr, 3, SAFE_PASS_VARGS("User: ", proc_stat->Username, " "));
+#elif __linux__
     itostr(proc_stat->Uid, &struid);
     strconcat(&hdr, 5, SAFE_PASS_VARGS("User: ", proc_stat->Username, " (Uid=", struid, ") "));
+#endif
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
     free(hdr);
 
@@ -241,34 +255,41 @@ DECLFUNC static void draw_menu(Window *win, int termX, int termY)
   }
 }
 
-DECLFUNC ATTR(nonnull(1, 2)) void Window_refresh(Window *win, Process_stat *proc_stat)
+DECLFUNC ATTR(nonnull(1, 2)) bool Window_refresh(Window *win, Process_stat *proc_stat)
 {
-  int x = 0, y = 0;
+  int x = COLS, y = LINES;
   {
+#ifdef __linux__
     struct winsize sz; // get terminal real size at the moment
     if (ioctl(2, TIOCGWINSZ, &sz) == 0) {
       x = sz.ws_col;
       y = sz.ws_row;
-    } else {
-      // use defaults from ncurses
-      x = COLS;
-      y = LINES;
     }
+#elif _WIN32
+    // TODO: size not updated after resize console
+    CONSOLE_SCREEN_BUFFER_INFO out;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &out)) {
+      x = out.srWindow.Right - out.srWindow.Left + 1;
+      y = out.srWindow.Bottom - out.srWindow.Top + 1;
+    }
+#endif
   }
   wresize(win->__p, y, x);
-  refresh();
+  wrefresh(win->__p);
   clear();
 
   char *errormsg = NULL;
   if (!Process_stat_update(proc_stat, &errormsg)) {
     printw("%s\n", errormsg);
+    printf("%s\n", errormsg);
     free(errormsg);
-    return;
+    return false;
   }
-
   draw_CPU_usage(win, proc_stat, x, y);
   draw_process_info(win, proc_stat, x, y);
   draw_menu(win, x, y);
+
+  return true;
 }
 
 DECLFUNC ATTR(nonnull(1)) void Window_destroy(Window *win)

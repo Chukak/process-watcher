@@ -1,21 +1,27 @@
 #include "process-watcher-globals.h"
 
+#if _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
+
 #include <stdarg.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-static const int SMALL_BUFFER_SIZE = 128;
+#define SMALL_BUFFER_SIZE 128
 
 DECLFUNC static void strrecreate(char **dst)
 {
   char *tmp = malloc(1 * sizeof(char));
+  ASSERT(tmp != NULL, "unable to create string (char*) != NULL; malloc(...) returns NULL.");
   *tmp = '\0';
   *dst = tmp;
 }
 
-DECLFUNC static int strrealloc(char **dst, long unsigned int size)
+DECLFUNC static int strrealloc(char **dst, size_t size)
 {
   char *allocated = realloc(*dst, size * sizeof(char) + 1);
   if (!allocated)
@@ -72,8 +78,9 @@ DECLFUNC long long freadall(const char *filename, char **dst)
   return bytes;
 }
 
-DECLFUNC ATTR(
-    nonnull(1, 3, 4)) void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
+DECLFUNC
+ATTR(nonnull(1, 3, 4))
+void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
 {
   size_t sublen = strlen(substr), // substring length
       replen = strlen(repstr),    // replacement length
@@ -147,20 +154,26 @@ DECLFUNC long long fgetall(const char *filename, char **dst)
   return bytes;
 }
 
-DECLFUNC static void tostr(void *p, char **dst, int typeid)
+typedef enum
+{
+  INT_T,
+  DOUBLE_T
+} __type_id;
+
+DECLFUNC static void tostr(void *p, char **dst, __type_id typeid)
 {
   char *array;
   strrecreate(&array);
   size_t length;
   switch (typeid) {
-  case 0:
+  case INT_T:
     length = (size_t) snprintf(NULL, 0, "%d", *((int *) p));
     break;
-  case 1:
+  case DOUBLE_T:
     length = (size_t) snprintf(NULL, 0, "%.3f", *((double *) p));
     break;
   default:
-    break;
+    return;
   }
 
   if (strrealloc(&array, length) != 0)
@@ -168,10 +181,10 @@ DECLFUNC static void tostr(void *p, char **dst, int typeid)
   ++length; // because, array has the null terminated character
 
   switch (typeid) {
-  case 0:
+  case INT_T:
     snprintf(array, length, "%d", *((int *) p));
     break;
-  case 1:
+  case DOUBLE_T:
     snprintf(array, length, "%.3f", *((double *) p));
     break;
   default:
@@ -181,15 +194,12 @@ DECLFUNC static void tostr(void *p, char **dst, int typeid)
   *dst = array;
 }
 
-#define __GET_TYPEID(x) _Generic((x), int : 0, double : 1, default : -1)
-#define TO_STR(n, dst) tostr(&n, dst, __GET_TYPEID(n))
-
 DECLFUNC void itostr(int n, char **dst)
 {
-  TO_STR(n, dst);
+  tostr(&n, dst, INT_T);
 }
 
 DECLFUNC void ftostr(double n, char **dst)
 {
-  TO_STR(n, dst);
+  tostr(&n, dst, DOUBLE_T);
 }

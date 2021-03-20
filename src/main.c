@@ -1,13 +1,24 @@
 #include "process-watcher-globals.h"
-#include "window.h"
+#include "twindow.h"
 #include "process.h"
 #include "keys.h"
 #include "cmdargs.h"
+
+#ifdef __linux__
 #include <unistd.h>
+#elif _WIN32
+#include <Windows.h>
+#endif
 #include <signal.h>
 #include <stdlib.h>
 
-static _Atomic bool Is_running = false;
+static
+#ifdef _MSC_VER // TODO: support atomic
+    volatile
+#else
+    _Atomic
+#endif
+    bool Is_running = false;
 DECLFUNC static void sighandler(int sig)
 {
   UNUSED(sig);
@@ -22,6 +33,7 @@ DECLFUNC int main(int argc, char** argv)
   signal(SIGINT, sighandler);
   signal(SIGTERM, sighandler);
 
+  int rc = 0;
   Cmd_args* args = Cmd_args_init(argc, argv);
   if (args->Valid) {
     Process_stat* stat = Process_stat_init();
@@ -36,8 +48,14 @@ DECLFUNC int main(int argc, char** argv)
       Keys_set_args(keys, stat, mainwin);
       Keys_start_handle(keys); // start process keys
       while (Is_running) {
-        Window_refresh(mainwin, stat);
+        if (!Window_refresh(mainwin, stat))
+          break;
+
+#ifdef __linux__
         usleep((unsigned int) (args->Refresh_timeout_ms * 1000)); // usleep takes microseconds
+#elif _WIN32
+        Sleep((DWORD) args->Refresh_timeout_ms);
+#endif
       }
 
       Is_running = false;
@@ -57,5 +75,5 @@ DECLFUNC int main(int argc, char** argv)
 
   Cmd_args_free(args);
 
-  return 0;
+  return rc;
 }
