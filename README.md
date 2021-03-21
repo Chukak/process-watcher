@@ -1,5 +1,9 @@
 # process-watcher
 
+Shows some information about the observed process.
+
+![process-watcher](https://github.com/Chukak/process-watcher/blob/main/process-watcher.png)
+
 ## Build from sources
 
 ### Linux
@@ -8,6 +12,7 @@ To build the `process-watcher` from sources on Linux you will need `libncurses-d
 ```bash
 apt-get install libncurses-dev
 ```
+
 Open terminal and run the following command:
 ```bash
 cmake .
