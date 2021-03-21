@@ -270,7 +270,7 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
                  "%*d %*d "
                  "%d " // priority
                  "%*d %*d %*d "
-                 "%lu " // starttime
+                 "%llu " // starttime
                  "%*d "
                  "%ld " // rss
                  "%*d %*d %*d "
@@ -445,7 +445,7 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
       // read btime
       char* btime_begin = strstr(statcache, "btime ") + 6 /* btime word length and space */;
       if (btime_begin)
-        sscanf(btime_begin, "%lu", &pstat->__last_btime);
+        sscanf(btime_begin, "%llu", &pstat->__last_btime);
 
       free(statpath);
       free(statcache);
@@ -500,7 +500,8 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
     // calculate time
     struct tm buf;
 #ifdef __linux__
-    time_t process_starttime = (time_t)(pstat->__last_btime + pstat->__last_starttime / sysconf(_SC_CLK_TCK);
+    time_t process_starttime =
+        (time_t)(pstat->__last_btime + pstat->__last_starttime / (unsigned long long) sysconf(_SC_CLK_TCK));
 #elif _WIN32
     time_t process_starttime = (time_t) pstat->__last_starttime;
 #endif

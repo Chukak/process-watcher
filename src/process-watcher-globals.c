@@ -1,8 +1,8 @@
 #include "process-watcher-globals.h"
 
-#if _WIN32
+#ifdef _WIN32
 #include <io.h>
-#else
+#elif __linux__
 #include <unistd.h>
 #endif
 
