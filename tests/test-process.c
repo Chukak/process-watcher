@@ -32,14 +32,12 @@ get_real_pid(const char *name, HANDLE *phandle)
   assert(pipe != NULL);
   if (fgets(buf, 512, pipe) != NULL) {
     pclose(pipe);
-#ifdef _WIN32
+    // remove spaces
     char *cache = NULL;
     strreplace(buf, &cache, " ", "", -1 /* all */);
-#endif
     pid = (int) strtol(cache, NULL, 10);
-#ifdef _WIN32
     free(cache);
-
+#ifdef _WIN32
     *phandle = (HANDLE) OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD) pid);
     assert(*phandle != NULL);
 #endif
@@ -82,7 +80,7 @@ check_process(HANDLE phandle)
 #endif
 {
 #ifdef __linux__
-  return getpgid(actualPid) >= 0;
+  return getpgid(pid) >= 0;
 #elif _WIN32
   DWORD pstatus;
   if (GetExitCodeProcess(phandle, &pstatus))
