@@ -92,12 +92,15 @@ set(C_PROJECT_LINK_FLAGS
 set(C_PROJECT_COMPILE_DEFINITIONS
     -D__BINARY_NAME=\"${PROJECT_NAME}\")
 
-if (TESTS_ENABLED AND UNIX) # TODO: enable tests on Windows
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if (TESTS_ENABLED)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # TODO: doesn't work
         list(APPEND C_PROJECT_COMPILE_FLAGS /VERBOSE /EXPORTS)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        list(APPEND C_PROJECT_COMPILE_FLAGS -g -fno-omit-frame-pointer -fsanitize=address)
-        list(APPEND C_PROJECT_LINK_FLAGS -lasan)
+        list(APPEND C_PROJECT_COMPILE_FLAGS -g)
+        if(UNIX)
+            list(APPEND C_PROJECT_COMPILE_FLAGS -fno-omit-frame-pointer -fsanitize=address)
+            list(APPEND C_PROJECT_LINK_FLAGS -lasan)
+        endif()
     endif()
 else()
     if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # TODO: doesn't work
@@ -117,12 +120,13 @@ target_link_directories(${PROJECT_NAME} PUBLIC ${ADDITIONAL_LINK_DIRECTORIES})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin COMPONENT binary)
 
-if (TESTS_ENABLED)
+if (TESTS_ENABLED) # gcc or mingw
     set(PROJECT_INCLUDE_DIRECTORIES include src) 
 
     set(PROJECT_TEST_NAME ${PROJECT_NAME}-test)
     enable_testing()
 
+    list(APPEND C_PROJECT_COMPILE_FLAGS -g)
     if (UNIX)
         list(APPEND C_PROJECT_COMPILE_FLAGS -fno-omit-frame-pointer -fsanitize=address)
         list(APPEND C_PROJECT_LINK_FLAGS -lasan)

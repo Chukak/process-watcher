@@ -222,7 +222,7 @@ DECLFUNC ATTR(nonnull(1, 2)) bool Process_stat_set_pid(Process_stat* stat, const
   stat->Pid = pid;
 
 #ifdef _WIN32
-  stat->__phandle = (void*) OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD) stat->Pid);
+  stat->__phandle = (HANDLE) OpenProcess(PROCESS_ALL_ACCESS, false, (DWORD) stat->Pid);
   if (!stat->__phandle) { // TODO: show last error
     strconcat(errormsg, 1, SAFE_PASS_VARGS("OpenProcess returns NULL."));
     return false;
@@ -538,7 +538,7 @@ DECLFUNC ATTR(nonnull(1)) void Process_stat_free(Process_stat* stat)
   free(stat->State_fullname);
   free(stat->Start_time);
   free(stat->Time_usage);
-  free((stat->Username));
+  free(stat->Username);
 
   free(stat);
 }

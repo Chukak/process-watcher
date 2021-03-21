@@ -1,9 +1,11 @@
 #include "testing-globals.h"
 
 #include "cmdargs.h"
-
+#ifdef __linux__
 #include <unistd.h>
-
+#elif _WIN32
+#include <Windows.h>
+#endif
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -67,12 +69,20 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
     Cmd_args_free(args);
   }
   {
+    int cachefd, fd;
+#ifdef __linux__
     // redirect printf to /dev/null
-    int cachefd = dup(fileno(stdout));
-    int fd = open("/dev/null", O_WRONLY);
+    cachefd = dup(fileno(stdout));
+    fd = open("/dev/null", O_WRONLY);
     dup2(fd, fileno(stdout));
     close(fd);
-
+#elif _WIN32
+    // use CRT
+    cachefd = _dup(fileno(stdout));
+    fd = _open("nul", _O_WRONLY);
+    _dup2(fd, fileno(stdout));
+    _close(fd);
+#endif
     int argc = 1;
     char *argv[] = {(char *) "."};
 
@@ -86,7 +96,12 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
     Cmd_args_free(args);
 
     fflush(stdout);
+#ifdef __linux__
     dup2(cachefd, fileno(stdout));
     close(cachefd);
+#elif _WIN32
+    _dup2(cachefd, fileno(stdout));
+    _close(cachefd);
+#endif
   }
 }

@@ -10,7 +10,7 @@ static const char* TEXT_COLOR_RED = "\x1B[31m";
 static const char* TEXT_COLOR_NORMAL = "\x1B[0m";
 static const char* TEXT_COLOR_GREEN = "\x1B[32m";
 
-__attribute__((nothrow)) static const char* check_support_color(const char* color)
+DECLFUNC static const char* check_support_color(const char* color)
 {
   const char* env = getenv("TERM");
   if (env != NULL) {
@@ -25,7 +25,7 @@ __attribute__((nothrow)) static const char* check_support_color(const char* colo
   return "";
 }
 
-__attribute__((nothrow)) void __testing_globals_print_hdr(const char* testname, const char* testcasename)
+DECLFUNC void __testing_globals_print_hdr(const char* testname, const char* testcasename)
 {
   printf("%s[%s.%s] %s \n",
          check_support_color(TEXT_COLOR_GREEN),
@@ -34,7 +34,7 @@ __attribute__((nothrow)) void __testing_globals_print_hdr(const char* testname, 
          check_support_color(TEXT_COLOR_NORMAL));
 }
 
-__attribute__((nothrow)) void __testing_globals_print_test_result(int __failed, int __passed)
+DECLFUNC void __testing_globals_print_test_result(int __failed, int __passed)
 {
   if (__failed == 0) {
     printf("%s[PASSED: %d] %s \n",
@@ -50,7 +50,7 @@ __attribute__((nothrow)) void __testing_globals_print_test_result(int __failed, 
   }
 }
 
-__attribute__((nothrow)) void __testing_globals_print_fail_info(const char* varname1,
+DECLFUNC void __testing_globals_print_fail_info(const char* varname1,
                                                                 const char* varname2,
                                                                 const char* desc,
                                                                 const char* filename,

@@ -62,15 +62,23 @@ DECLFUNC long long freadall(const char *filename, char **dst)
       length = ftell(file);
       fseek(file, 0, SEEK_SET);
 
+      if (length <= 0)
+        break;
+
       char *array;
       strrecreate(&array);
       if (strrealloc(&array, (size_t) length) != 0)
         break;
 
-      if ((bytes = (long long) fread(array, sizeof(char), (size_t) length, file)) == length) {
-        array[length] = '\0';
+      if ((bytes = (long long) fread(array,
+                                     sizeof(char),
+                                     (size_t) length,
+                                     file)) /* less or equal, because we can read bytes less than length */
+          <= length) {
+        array[bytes] = '\0';
         *dst = array;
       }
+
     } while (0);
     fclose(file);
   }

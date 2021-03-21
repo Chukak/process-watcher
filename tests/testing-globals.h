@@ -1,21 +1,29 @@
 #ifndef __TESTING_GLOBALS_H
 #define __TESTING_GLOBALS_H
 
+#if defined __GNUC__ || defined __MINGW32__
+
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#ifdef __linux__
+#include <unistd.h>
+#elif _WIN32
+#include <Windows.h>
+#endif
+
+#include "props.h"
 
 // detects filename without full path.
 #define __DETECT_FILENAME() strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 
 // declare test caller
-#define __TEST_DECLARE_CALLER(TestName, TestCaseName)                                                                  \
-  __attribute__((constructor(10000))) void TestName##_##TestCaseName()
+#define __TEST_DECLARE_CALLER(TestName, TestCaseName) ATTR(constructor(10000)) void TestName##_##TestCaseName()
 // test function name (not caller!)
 #define __TEST_CASE_FUNC_NAME(TestName, TestCaseName)                                                                  \
-  __attribute__((nothrow)) void __##TestName##__##TestCaseName##__(int* __failed, int* __passed)
+  DECLFUNC void __##TestName##__##TestCaseName##__(int* __failed, int* __passed)
 // return code of the execution of all tests
 int __testing_globals_return_code;
 
@@ -52,7 +60,7 @@ int __testing_globals_return_code;
  * PRERUN(PreRunFunc) {...}
  * @endcode
  */
-#define PRERUN(FuncName) __attribute__((constructor(1000))) void __##FuncName##_ctor__()
+#define PRERUN(FuncName) ATTR(constructor(1000)) void __##FuncName##_ctor__()
 /**
  * @brief POSTRUN
  * Declaration of function, that is executed after the execution main() function.
@@ -60,7 +68,7 @@ int __testing_globals_return_code;
  * POSTRUN(PostRunFunc) {...}
  * @endcode
  */
-#define POSTRUN(FuncName) __attribute__((destructor(1000))) void __##FuncName##_dtor__()
+#define POSTRUN(FuncName) ATTR(destructor(1000)) void __##FuncName##_dtor__()
 /**
  * @brief RUN_TESTS
  * Definition the main function with the execution of all tests.
@@ -118,13 +126,13 @@ typedef enum
  * @param testname The common test name
  * @param testcasename The test case name
  */
-__attribute__((nothrow)) void __testing_globals_print_hdr(const char* testname, const char* testcasename);
+DECLFUNC void __testing_globals_print_hdr(const char* testname, const char* testcasename);
 /**
  * @brief __testing_globals_print_test_result
  * @param __failed Pointer to the failed checks in this test case
  * @param __passed Pointer to the passed checks in this test case
  */
-__attribute__((nothrow)) void __testing_globals_print_test_result(int __failed, int __passed);
+DECLFUNC void __testing_globals_print_test_result(int __failed, int __passed);
 /**
  * @brief __testing_globals_print_fail_info
  * @param varname1 The first variable name
@@ -135,14 +143,14 @@ __attribute__((nothrow)) void __testing_globals_print_test_result(int __failed, 
  * @param type Type of variables
  * @param argc Count passed variables
  */
-__attribute__((nothrow)) void __testing_globals_print_fail_info(const char* varname1,
-                                                                const char* varname2,
-                                                                const char* desc,
-                                                                const char* filename,
-                                                                int line,
-                                                                __testing_globals_types_t type,
-                                                                int argc,
-                                                                ...);
+DECLFUNC void __testing_globals_print_fail_info(const char* varname1,
+                                                const char* varname2,
+                                                const char* desc,
+                                                const char* filename,
+                                                int line,
+                                                __testing_globals_types_t type,
+                                                int argc,
+                                                ...);
 
 // checks two variables using predicat and prints information about this check.
 #define __CHECK_ANY(__arg1, __arg2, __predicat, __desc)                                                                \
@@ -233,13 +241,23 @@ __attribute__((nothrow)) void __testing_globals_print_fail_info(const char* varn
  */
 #define CHECK_STR_NE(arg1, arg2) __CHECK_ANY(arg1, arg2, STRINGS_ARE_NOT_EQUAL(arg1, arg2), "not equal")
 
+#ifdef __linux__
+#define __SLEEP(sec) sleep(sec);
+#elif _WIN32
+#define __SLEEP(ms) Sleep(ms * 1000);
+#endif
+
 #define SLEEP_SEC(n)                                                                                                   \
   {                                                                                                                    \
     printf("Waiting for delay (%d sec)...", n);                                                                        \
     fflush(stdout);                                                                                                    \
-    sleep(n);                                                                                                          \
+    __SLEEP(n);                                                                                                        \
     printf("done!\n");                                                                                                 \
     fflush(stdout);                                                                                                    \
   }
+
+#else
+#error "At the moment testing is only available for the GCC and MinGW compilers."
+#endif
 
 #endif // __TESTING_GLOBALS_H
