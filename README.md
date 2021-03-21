@@ -2,6 +2,29 @@
 
 ## Build from sources
 
+### Linux
+
+To build the `process-watcher` from sources on Linux you will need `libncurses-dev`:
+```bash
+apt-get install libncurses-dev
+```
+Open terminal and run the following command:
+```bash
+cmake .
+make
+sudo make install # for installing
+```
+
+To run the `process-watcher`:
+```bash
+./process-watcher # show help
+# Example:
+./process-watcher kwin_x11 # watching for kwin_x11
+```
+
+Tested on `Kubuntu 20.04`.
+
+
 ### Windows
 
 To build the `process-watcher` from sources on Windows you will need [PDcurses](https://github.com/wmcbrine/PDCurses) for Windows or from other sources. 
