@@ -476,24 +476,31 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
       pstat->__last_stime = sys_time;
       pstat->__last_total = total_time;
 
-      pstat->__last_starttime = ft2ull(&begin_time) / (unsigned long long) 1e7; // convert to ms
+      pstat->__last_starttime = ft2ull(&begin_time) / (unsigned long long) 1e7; // convert to sec
     }
 #endif
   }
 
   if (success && !pstat->Killed) {
+    long int mem_usage_kb;
 #ifdef __linux__
     // calculate memory usage
-    long int mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
+    mem_usage_kb = rsspid * (getpagesize() / PAGESIZE_DIV_VALUE);
+#elif _WIN32
+    {
+      PROCESS_MEMORY_COUNTERS pmc;
+      GetProcessMemoryInfo(pstat->__phandle, (PPROCESS_MEMORY_COUNTERS) &pmc, sizeof(pmc));
+      SYSTEM_INFO info;
+      GetSystemInfo(&info);
+      // show real working size
+      mem_usage_kb = (long int) (pmc.WorkingSetSize /* size in bytes */ / 1024);
+      // but, windows task manager show it value
+      // mem_usage_kb = (long int)(pmc.PagefielUsage /* size in bytes */ / 1024);
+    }
+#endif
     pstat->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
 
     pstat->Memory_peak_usage = MAX(pstat->Memory_peak_usage, pstat->Memory_usage);
-#elif _WIN32
-    PROCESS_MEMORY_COUNTERS_EX pmc;
-    GetProcessMemoryInfo(pstat->__phandle, (PPROCESS_MEMORY_COUNTERS) &pmc, sizeof(pmc));
-    pstat->Memory_usage = (double) (pmc.WorkingSetSize / 1024 / 1024); // TODO: check values, are correct?
-    pstat->Memory_peak_usage = (double) (pmc.PeakWorkingSetSize / 1024 / 1024);
-#endif
   }
 
   if (success && !pstat->Killed) {
@@ -501,9 +508,11 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
     struct tm buf;
 #ifdef __linux__
     time_t process_starttime =
-        (time_t)(pstat->__last_btime + pstat->__last_starttime / (unsigned long long) sysconf(_SC_CLK_TCK));
+        (time_t)(pstat->__last_btime /* boot system time in sec */ +
+                 (pstat->__last_starttime /
+                  (unsigned long long) sysconf(_SC_CLK_TCK) /* kernel planned process time in ticks */));
 #elif _WIN32
-    time_t process_starttime = (time_t) pstat->__last_starttime;
+    time_t process_starttime = (time_t) pstat->__last_starttime; // it is the current local time in seconds!
 #endif
 #ifdef __linux__
     localtime_r(&process_starttime, &buf);
@@ -515,7 +524,18 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
 #ifdef __linux__
     time_t process_usagetime = time(0) - process_starttime;
 #elif _WIN32
-    time_t process_usagetime = time(0) - process_starttime / 1000; // convert to seconds
+    // windows epoch starts at 1 january 1601
+    // unix epoch starts 1 january 1970
+    // valid value = 11644473600.0
+    time_t sec_to_unix_epoch;
+    {
+      FILETIME ft;
+      // members: {year, month, day of week, day, hour, min, sec, ms}
+      SYSTEMTIME st = {1970, 1, 0, 1, 0, 0, 0, 0};
+      SystemTimeToFileTime(&st, &ft);
+      sec_to_unix_epoch = (time_t)(ft2ull(&ft) / (unsigned long long) 1e7) /* convert to sec*/;
+    }
+    time_t process_usagetime = time(0) - (process_starttime - sec_to_unix_epoch);
 #endif
     // we need duration instead of current localtime
 #ifdef __linux__
