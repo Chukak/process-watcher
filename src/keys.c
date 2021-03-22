@@ -29,12 +29,10 @@ struct __Keys_thread
       bool Running; //! Thread status
 };
 
-DECLFUNC static
 #ifdef __linux__
-    void *
-    process_key(void *arg); // Forward declaration
+DECLFUNC static void *process_key(void *arg); // Forward declaration
 #elif _WIN32
-    DWORD WINAPI process_key(LPVOID);
+DECLFUNC static DWORD WINAPI process_key(LPVOID);
 #endif
 
 DECLFUNC ATTR(warn_unused_result) Keys *Keys_init()
@@ -98,13 +96,10 @@ DECLFUNC ATTR(nonnull(1)) void Keys_destroy(Keys *k)
   free(k);
 }
 
-DECLFUNC static
 #ifdef __linux__
-    void *
-    process_key(void *arg)
+DECLFUNC static void *process_key(void *arg)
 #elif _WIN32
-    DWORD WINAPI
-    process_key(LPVOID arg)
+DECLFUNC static DWORD WINAPI process_key(LPVOID arg)
 #endif
 {
   Keys *k = (Keys *) arg;

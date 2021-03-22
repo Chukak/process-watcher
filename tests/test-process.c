@@ -12,22 +12,19 @@
 #endif
 #include <string.h>
 
-DECLFUNC static int
 #ifdef __linux__
-get_real_pid(const char *name)
+DECLFUNC static int get_real_pid(const char *name)
 #elif _WIN32
-get_real_pid(const char *name, HANDLE *phandle)
+DECLFUNC static int get_real_pid(const char *name, HANDLE *phandle)
 #endif
 {
   int pid = -1;
   char buf[512], command[512];
-  sprintf(command,
 #ifdef __linux__
-          "pidof %s",
+  sprintf(command, "pidof %s", name);
 #elif _WIN32
-          "powershell -command \"(get-process %s).id \" ",
+  sprintf(command, "powershell -command \"(get-process %s).id \" ", name);
 #endif
-          name);
   FILE *pipe = popen(command, "r");
   assert(pipe != NULL);
   if (fgets(buf, 512, pipe) != NULL) {
@@ -54,13 +51,13 @@ DECLFUNC static void compile_binary(const char *name, const char *code)
   assert(fclose(src) == 0);
 
   char command[512];
-  sprintf(command,
+
 #if defined __GNUC__ || defined __MINGW32__
-          "gcc -o %s src.c",
+  sprintf(command, "gcc -o %s src.c", name);
 #else // TODO: other compilers
-          ""
+  sprintf(command, "", name);
 #endif
-          name);
+
   assert(system(command) == 0);
 #ifdef __linux__
   assert(chmod(srcName, S_IRWXU | S_IRWXO) == 0);
@@ -72,11 +69,10 @@ DECLFUNC static void clean_temp_files()
   remove("src.c");
 }
 
-DECLFUNC static bool
 #ifdef __linux__
-check_process(int pid)
+DECLFUNC static bool check_process(int pid)
 #elif _WIN32
-check_process(HANDLE phandle)
+DECLFUNC static bool check_process(HANDLE phandle)
 #endif
 {
 #ifdef __linux__
@@ -103,24 +99,20 @@ TEST_CASE(Process, GetProcessNameByPid)
                             "int main(){\n"
                             "while(1){printf(\"Test message.\");SLEEP(1);}\n"
                             "}";
-  const char *binname =
 #ifdef __linux__
-      "testprocess";
+  const char *binname = "testprocess";
 #elif _WIN32
-      "testprocess.exe";
+  const char *binname = "testprocess.exe";
 #endif
   compile_binary(binname, processCode);
   {
     {
       char command[256];
-      sprintf(command,
 #ifdef __linux__
-              "./testprocess > /dev/null & 2>&1 && sleep 2"
+      sprintf(command, "./testprocess > /dev/null & 2>&1 && sleep 2");
 #elif _WIN32
-              "start /B testprocess.exe > NUL 2>&1 && timeout 2 > NUL 2>&1"
+      sprintf(command, "start /B testprocess.exe > NUL 2>&1 && timeout 2 > NUL 2>&1");
 #endif
-      );
-
       assert(system(command) == 0);
     }
 
@@ -130,22 +122,19 @@ TEST_CASE(Process, GetProcessNameByPid)
     HANDLE phandle;
 #endif
     // get the actual PID using pidof command
-    int actualPid =
 #ifdef __linux__
-        get_real_pid(binname);
+    int actualPid = get_real_pid(binname);
 #elif _WIN32
-        get_real_pid("testprocess", &phandle);
+    int actualPid = get_real_pid("testprocess", &phandle);
 #endif
     assert(actualPid > 0);
     // compare PID's
     CHECK_EQ(pid, actualPid);
-    CHECK_EQ(
 #ifdef __linux__
-        check_process(actualPid),
+    CHECK_EQ(check_process(actualPid), true);
 #elif _WIN32
-        check_process(phandle),
+    CHECK_EQ(check_process(phandle), true);
 #endif
-        true);
 
 #ifdef __linux__
     if (check_process(actualPid))
@@ -180,34 +169,29 @@ TEST_CASE(Process, ProcessStatStructureUsage)
                             "}\n"
                             "free(buffer);\n"
                             "}\n";
-  const char *binname =
 #ifdef __linux__
-      "testprocess";
+  const char *binname = "testprocess";
 #elif _WIN32
-      "testprocess.exe";
+  const char *binname = "testprocess.exe";
 #endif
   compile_binary(binname, processCode);
   {
     {
       char command[256];
-      sprintf(command,
 #ifdef __linux__
-              "./testprocess > /dev/null & 2>&1 && sleep 2"
+      sprintf(command, "./testprocess > /dev/null & 2>&1 && sleep 2");
 #elif _WIN32
-              "start /B testprocess.exe > NUL 2>&1 && timeout 2 > NUL 2>&1"
+      sprintf(command, "start /B testprocess.exe > NUL 2>&1 && timeout 2 > NUL 2>&1");
 #endif
-      );
-
       assert(system(command) == 0);
     }
 #ifdef _WIN32
     HANDLE phandle;
 #endif
-    int actualPid =
 #ifdef __linux__
-        get_real_pid(binname);
+    int actualPid = get_real_pid(binname);
 #elif _WIN32
-        get_real_pid("testprocess", &phandle);
+    int actualPid = get_real_pid("testprocess", &phandle);
 #endif
     assert(actualPid > 0);
 
@@ -269,13 +253,11 @@ TEST_CASE(Process, ProcessStatStructureUsage)
 
     SLEEP_SEC(2);
 
-    CHECK_EQ(
 #ifdef __linux__
-        check_process(actualPid),
+    CHECK_EQ(check_process(actualPid), false);
 #elif _WIN32
-        check_process(phandle),
+    CHECK_EQ(check_process(phandle), false);
 #endif
-        false);
 
     Process_stat_free(statobj);
 
