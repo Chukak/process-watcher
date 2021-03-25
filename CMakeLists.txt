@@ -54,7 +54,6 @@ elseif(WIN32)
         
         set(PDCURSES_LIBRARIES ${PDCURSES_LIB_NAME})
     else()
-        set(ADDITIONAL_LINK_DIRECTORIES ${PDCURSES_LIB_PATH})
         set(PDCURSES_LIBRARIES pdcurses)
     endif()
 
@@ -116,7 +115,6 @@ target_compile_options(${PROJECT_NAME} PUBLIC ${C_PROJECT_COMPILE_FLAGS})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${C_PROJECT_LINK_FLAGS} ${LIBRARIES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${C_PROJECT_COMPILE_DEFINITIONS})
 target_include_directories(${PROJECT_NAME} PRIVATE src PUBLIC include ${ADDITIONAL_INCLUDE_DIRECTORIES})
-target_link_directories(${PROJECT_NAME} PUBLIC ${ADDITIONAL_LINK_DIRECTORIES})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin COMPONENT binary)
 
@@ -151,6 +149,4 @@ if (TESTS_ENABLED) # gcc or mingw
     target_include_directories(${PROJECT_TEST_NAME} PRIVATE src PUBLIC  
         ${PROJECT_INCLUDE_DIRECTORIES}
         ${ADDITIONAL_INCLUDE_DIRECTORIES})
-    target_link_directories(${PROJECT_TEST_NAME} PUBLIC ${ADDITIONAL_LINK_DIRECTORIES})
-
 endif()
