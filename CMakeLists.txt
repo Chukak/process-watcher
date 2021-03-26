@@ -149,4 +149,6 @@ if (TESTS_ENABLED) # gcc or mingw
     target_include_directories(${PROJECT_TEST_NAME} PRIVATE src PUBLIC  
         ${PROJECT_INCLUDE_DIRECTORIES}
         ${ADDITIONAL_INCLUDE_DIRECTORIES})
+
+    add_test(NAME "${PROJECT_TEST_NAME}" COMMAND ${PROJECT_TEST_NAME})
 endif()
