@@ -28,7 +28,7 @@ elseif(WIN32)
         set(PDCURSES_LIB_NAME_DLL ${PDCURSES_LIB_NAME}.dll)
         set(PDCURSES_IMPLIB_NAME "")
 
-        if(CMAKE_C_COMPILER_ID STREQUAL "MCVS")
+        if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
             set(PDCURSES_LIB_NAME_LIB ${PDCURSES_LIB_NAME}.lib)
         else() # TODO: other compilers with .lib? 
             set(PDCURSES_LIB_NAME_LIB ${PDCURSES_LIB_NAME}.a) 
@@ -77,24 +77,23 @@ set(PRIVATE_HEADER_FILES
 set(PUBLIC_HEADER_FILES
     include/process.h)
 
-if (CMAKE_C_COMPILER_ID STREQUAL "MCVS") # TODO: doesn't work
+set(C_PROJECT_LINK_FLAGS
+    )
+set(C_PROJECT_COMPILE_DEFINITIONS
+    -D__BINARY_NAME=\"${PROJECT_NAME}\")
+
+if (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     set(C_PROJECT_COMPILE_FLAGS
-        /analyze /GL /RTCc /RTCu /RTCs /Wall /std:c11)
+         /GL /RTCc /RTCu /RTCs /W4 /std:c11)
+    list(APPEND C_PROJECT_COMPILE_DEFINITIONS PDC_DLL_BUILD _CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN)
 elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU") # gcc, mingw
     set(C_PROJECT_COMPILE_FLAGS
         -Wextra -Wall -Wshadow -Wcast-align -Wwrite-strings -Wuninitialized -std=gnu11 -Wundef -Wconversion
         -Wunreachable-code)
 endif()
 
-set(C_PROJECT_LINK_FLAGS
-    )
-set(C_PROJECT_COMPILE_DEFINITIONS
-    -D__BINARY_NAME=\"${PROJECT_NAME}\")
-
 if (TESTS_ENABLED)
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # TODO: doesn't work
-        list(APPEND C_PROJECT_COMPILE_FLAGS /VERBOSE /EXPORTS)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         list(APPEND C_PROJECT_COMPILE_FLAGS -g)
         if(UNIX)
             list(APPEND C_PROJECT_COMPILE_FLAGS -fno-omit-frame-pointer -fsanitize=address)
@@ -102,9 +101,9 @@ if (TESTS_ENABLED)
         endif()
     endif()
 else()
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # TODO: doesn't work
+    if (CMAKE_C_COMPILER_ID STREQUAL "MSVC") 
         list(APPEND C_PROJECT_COMPILE_FLAGS /Ox)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
         list(APPEND C_PROJECT_COMPILE_FLAGS -O3)
     endif()
 endif()
@@ -124,7 +123,9 @@ if (TESTS_ENABLED) # gcc or mingw
     set(PROJECT_TEST_NAME ${PROJECT_NAME}-test)
     enable_testing()
 
-    list(APPEND C_PROJECT_COMPILE_FLAGS -g)
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        list(APPEND C_PROJECT_COMPILE_FLAGS -g)
+    endif()
     if (UNIX)
         list(APPEND C_PROJECT_COMPILE_FLAGS -fno-omit-frame-pointer -fsanitize=address)
         list(APPEND C_PROJECT_LINK_FLAGS -lasan)
