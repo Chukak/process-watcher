@@ -1,5 +1,5 @@
-#ifndef PROPS_H
-#define PROPS_H
+#ifndef __PROPS_H
+#define __PROPS_H
 
 #include <stdio.h>
 #include <assert.h>
@@ -39,4 +39,4 @@
     assert(expr);                                                                                                      \
   }
 
-#endif // PROPS_H
+#endif // __PROPS_H

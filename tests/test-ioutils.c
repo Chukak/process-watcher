@@ -1,6 +1,6 @@
 #include "testing-globals.h"
 
-#include "process-watcher-globals.h"
+#include "ioutils.h"
 
 #include <stdio.h>
 

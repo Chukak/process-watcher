@@ -63,19 +63,19 @@ endif()
 
 set(SOURCE_FILES
     src/main.c
-    src/process-watcher-globals.c
+    src/ioutils.c
     src/process.c
     src/twindow.c
     src/cmdargs.c
     src/keys.c)
 set(PRIVATE_HEADER_FILES
-    src/process-watcher-globals.h
     src/twindow.h
     src/cmdargs.h
-    src/keys.h
-    src/props.h)
+    src/keys.h)
 set(PUBLIC_HEADER_FILES
-    include/process.h)
+    include/process.h
+    include/props.h
+    include/ioutils.h)
 
 set(C_PROJECT_LINK_FLAGS
     )
@@ -89,7 +89,7 @@ if (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
 elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU") # gcc, mingw
     set(C_PROJECT_COMPILE_FLAGS
         -Wextra -Wall -Wshadow -Wcast-align -Wwrite-strings -Wuninitialized -std=gnu11 -Wundef -Wconversion
-        -Wunreachable-code)
+        -Wunreachable-code -Wno-unknown-pragmas)
 endif()
 
 if (TESTS_ENABLED)
@@ -134,7 +134,7 @@ if (TESTS_ENABLED) # gcc or mingw
     set(TEST_SOURCE_FILES
         tests/main.c
         tests/testing-globals.c
-        tests/test-process-watcher-globals.c
+        tests/test-ioutils.c
         tests/test-process.c
         tests/test-cmdargs.c)
     set(TEST_HEADER_FILES

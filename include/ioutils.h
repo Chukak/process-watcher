@@ -1,5 +1,5 @@
-#ifndef __PROCESS_WATCHER_GLOBALS_H
-#define __PROCESS_WATCHER_GLOBALS_H
+#ifndef __IOUTILS_H
+#define __IOUTILS_H
 
 #include "props.h"
 
@@ -122,4 +122,4 @@ DECLFUNC long long fgetall(const char* filename, char** dst);
  * @param dst
  */
 DECLFUNC void ftostr(double n, char** dst);
-#endif // __PROCESS_WATCHER_GLOBALS_H
+#endif // __IOUTILS_H

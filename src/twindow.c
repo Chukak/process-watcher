@@ -1,5 +1,5 @@
 #include "twindow.h"
-#include "process-watcher-globals.h"
+#include "ioutils.h"
 
 #include <string.h>
 #include <stdlib.h>

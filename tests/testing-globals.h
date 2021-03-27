@@ -3,7 +3,7 @@
 
 // disable warnings
 #pragma warning(disable : 5105) // disable warnings
-#pragma warning(disable : 4067) 
+#pragma warning(disable : 4067)
 
 #include <string.h>
 #include <signal.h>
@@ -34,7 +34,8 @@
 #if defined __GNUC__ || defined __MINGW32__
 #define __TEST_DECLARE_CALLER(TestName, TestCaseName) FCTOR void TestName##_##TestCaseName()
 #elif _MSC_VER
-#define __TEST_DECLARE_CALLER(TestName, TestCaseName) void TestName##_##TestCaseName(); \
+#define __TEST_DECLARE_CALLER(TestName, TestCaseName)                                                                  \
+  void TestName##_##TestCaseName();                                                                                    \
   FCTOR(TestName##_##TestCaseName) void TestName##_##TestCaseName()
 #endif
 
@@ -77,10 +78,11 @@ int __testing_globals_return_code;
  * PRERUN(PreRunFunc) {...}
  * @endcode
  */
-#ifdef defined __GNUC__ || defined __MINGW32__
+#if defined __GNUC__ || defined __MINGW32__
 #define PRERUN(FuncName) FCTOR void __##FuncName##_ctor__()
 #elif _MSC_VER
-#define PRERUN(FuncName) void __##FuncName##_ctor__(); \
+#define PRERUN(FuncName)                                                                                               \
+  void __##FuncName##_ctor__();                                                                                        \
   FCTOR(__##FuncName##_ctor__) void __##FuncName##_ctor__()
 #endif
 /**
@@ -278,7 +280,7 @@ DECLFUNC void __testing_globals_print_fail_info(const char* varname1,
   }
 
 #ifdef __linux__
-#define CALL_FUNC(funcname) funcname 
+#define CALL_FUNC(funcname) funcname
 #elif _WIN32
 // Windows UCRT
 #define CALL_FUNC(funcname) _##funcname
