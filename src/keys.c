@@ -135,8 +135,7 @@ DECLFUNC static DWORD WINAPI process_key(LPVOID arg)
 #ifdef __linux__
       pthread_mutex_unlock(&(k->__thrd->Mut));
 #elif _WIN32
-      if (!ReleaseMutex(k->__thrd->Mut))
-        ASSERT(TRUE != FALSE, "Cannot to unlock mutex!");
+      ASSERT(!ReleaseMutex(k->__thrd->Mut), "Cannot to unlock mutex!");
 #endif
       break;
     }

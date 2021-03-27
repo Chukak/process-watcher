@@ -330,7 +330,7 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
         UNUSED(sid_name);
         if (LookupAccountSidA((LPCSTR) NULL, ptokuser->User.Sid, username, &length, domain, &domain_len, &sid_name)) {
           // TODO: uid?
-          pstat->Username = malloc(sizeof(char) * length);
+          pstat->Username = malloc(sizeof(char) * length + 1);
           ASSERT(pstat->Username != NULL, "pstat->Username (char*) != NULL; malloc(...) returns NULL.");
           strcpy(pstat->Username, username);
         } else {
