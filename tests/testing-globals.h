@@ -1,7 +1,9 @@
 #ifndef __TESTING_GLOBALS_H
 #define __TESTING_GLOBALS_H
 
-#if defined __GNUC__ || defined __MINGW32__
+// disable warnings
+#pragma warning(disable : 5105) // disable warnings
+#pragma warning(disable : 4067) 
 
 #include <string.h>
 #include <signal.h>
@@ -16,11 +18,26 @@
 
 #include "props.h"
 
+#if defined __GNUC__ || defined __MINGW32__
+// use constructor attribute
+#define FCTOR ATTR(constructor(10000))
+#elif _MSC_VER
+// use .CRT$XCU section to define constructors
+#pragma section(".CRT$XCU", read)
+#define FCTOR(funcname) __declspec(allocate(".CRT$XCU")) void (*ctors_##funcname)() = funcname;
+#endif
+
 // detects filename without full path.
 #define __DETECT_FILENAME() strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 
 // declare test caller
-#define __TEST_DECLARE_CALLER(TestName, TestCaseName) ATTR(constructor(10000)) void TestName##_##TestCaseName()
+#if defined __GNUC__ || defined __MINGW32__
+#define __TEST_DECLARE_CALLER(TestName, TestCaseName) FCTOR void TestName##_##TestCaseName()
+#elif _MSC_VER
+#define __TEST_DECLARE_CALLER(TestName, TestCaseName) void TestName##_##TestCaseName(); \
+  FCTOR(TestName##_##TestCaseName) void TestName##_##TestCaseName()
+#endif
+
 // test function name (not caller!)
 #define __TEST_CASE_FUNC_NAME(TestName, TestCaseName)                                                                  \
   DECLFUNC void __##TestName##__##TestCaseName##__(int* __failed, int* __passed)
@@ -60,7 +77,12 @@ int __testing_globals_return_code;
  * PRERUN(PreRunFunc) {...}
  * @endcode
  */
-#define PRERUN(FuncName) ATTR(constructor(1000)) void __##FuncName##_ctor__()
+#ifdef defined __GNUC__ || defined __MINGW32__
+#define PRERUN(FuncName) FCTOR void __##FuncName##_ctor__()
+#elif _MSC_VER
+#define PRERUN(FuncName) void __##FuncName##_ctor__(); \
+  FCTOR(__##FuncName##_ctor__) void __##FuncName##_ctor__()
+#endif
 /**
  * @brief POSTRUN
  * Declaration of function, that is executed after the execution main() function.
@@ -107,7 +129,6 @@ typedef enum
     _Bool: __BOOL, \
     unsigned char: __UNSIGNED_CHAR, \
     char: __CHAR, \
-    signed char: __SIGNED_CHAR, \
     short int: __SHORT_INT, \
     unsigned short int: __UNSIGNED_SHORT_INT, \
     int: __INT, \
@@ -256,8 +277,11 @@ DECLFUNC void __testing_globals_print_fail_info(const char* varname1,
     fflush(stdout);                                                                                                    \
   }
 
-#else
-#error "At the moment testing is only available for the GCC and MinGW compilers."
+#ifdef __linux__
+#define CALL_FUNC(funcname) funcname 
+#elif _WIN32
+// Windows UCRT
+#define CALL_FUNC(funcname) _##funcname
 #endif
 
 #endif // __TESTING_GLOBALS_H

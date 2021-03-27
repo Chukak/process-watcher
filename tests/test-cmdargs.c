@@ -5,6 +5,7 @@
 #include <unistd.h>
 #elif _WIN32
 #include <Windows.h>
+#include <io.h>
 #endif
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -70,19 +71,17 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
   }
   {
     int cachefd, fd;
+    const char *file;
 #ifdef __linux__
-    // redirect printf to /dev/null
-    cachefd = dup(fileno(stdout));
-    fd = open("/dev/null", O_WRONLY);
-    dup2(fd, fileno(stdout));
-    close(fd);
+    file = "/dev/null";
 #elif _WIN32
-    // use CRT
-    cachefd = _dup(fileno(stdout));
-    fd = _open("nul", _O_WRONLY);
-    _dup2(fd, fileno(stdout));
-    _close(fd);
+    file = "nul";
 #endif
+    // redirect printf to /dev/null
+    cachefd = CALL_FUNC(dup)(CALL_FUNC(fileno)(stdout));
+    fd = CALL_FUNC(open)(file, O_WRONLY);
+    CALL_FUNC(dup2)(fd, CALL_FUNC(fileno)(stdout));
+    CALL_FUNC(close)(fd);
     int argc = 1;
     char *argv[] = {(char *) "."};
 
@@ -96,12 +95,7 @@ TEST_CASE(Cmd_args, IncorrectCommandLineArguments)
     Cmd_args_free(args);
 
     fflush(stdout);
-#ifdef __linux__
-    dup2(cachefd, fileno(stdout));
-    close(cachefd);
-#elif _WIN32
-    _dup2(cachefd, fileno(stdout));
-    _close(cachefd);
-#endif
+    CALL_FUNC(dup2)(cachefd, CALL_FUNC(fileno)(stdout));
+    CALL_FUNC(close)(cachefd);
   }
 }

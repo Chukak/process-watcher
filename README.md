@@ -64,11 +64,24 @@ Tested on `Kubuntu 20.04/18.04/14.04`, `Debian Buster/Stretch/Jessie`.
 ### Windows
 
 To build the `process-watcher` from sources on Windows you will need [PDcurses](https://github.com/wmcbrine/PDCurses) for Windows or from other sources. 
-Also, you will need `cmake` and `mingw` compiler. Compile the `.dll` and `.a` libraries before compiling the `process-watcher`. 
+Also, you will need `cmake`
+
+#### MinGW compiler
+
+To compiler this project using `mingw` compiler, compile the `pdcurses.dll` and `pdcurses.a` libraries before compiling the `process-watcher`. 
 Open the terminal and run the folliwing command:
 ```bash
-cmake -G "MinGW Makefiles" -DPDCURSES_USE_DLL=1 -DPDCURSES_INCLUDE_PATH="/path/to/include" -DPDCURSES_LIB_PATH="/path/to/lib" .
+cmake -G "MinGW Makefiles" -DPDCURSES_USE_DLL=YES -DPDCURSES_INCLUDE_PATH="/path/to/include" -DPDCURSES_LIB_PATH="/path/to/lib" .
 mingw32-make
+```
+
+#### MSVC
+
+You need to compile the `pdcurses.dll` and `pdcurses.lib` libraries using MSVC before compiling the `process-watcher`. 
+Open the terminal and run the folliwing command:
+```bash
+cmake -DPDCURSES_USE_DLL=YES -DPDCURSES_INCLUDE_PATH="/path/to/include" -DPDCURSES_LIB_PATH="/path/to/lib" . 
+msbuild /nologo process-watcher.sln # Windows 10
 ```
 
 Tested on Windows: `Windows 10`.

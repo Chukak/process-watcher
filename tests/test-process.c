@@ -11,6 +11,7 @@
 #include <Windows.h>
 #endif
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef __linux__
 DECLFUNC static int get_real_pid(const char *name)
@@ -25,10 +26,10 @@ DECLFUNC static int get_real_pid(const char *name, HANDLE *phandle)
 #elif _WIN32
   sprintf(command, "powershell -command \"(get-process %s).id \" ", name);
 #endif
-  FILE *pipe = popen(command, "r");
+  FILE *pipe = CALL_FUNC(popen)(command, "r");
   assert(pipe != NULL);
   if (fgets(buf, 512, pipe) != NULL) {
-    pclose(pipe);
+    CALL_FUNC(pclose)(pipe);
     // remove spaces
     char *cache = NULL;
     strreplace(buf, &cache, " ", "", -1 /* all */);
@@ -54,8 +55,8 @@ DECLFUNC static void compile_binary(const char *name, const char *code)
 
 #if defined __GNUC__ || defined __MINGW32__
   sprintf(command, "gcc -o %s src.c", name);
-#else // TODO: other compilers
-  sprintf(command, "", name);
+#elif _MSC_VER
+  sprintf(command, "cl.exe /Fe:%s src.c > NUL 2>&1", name);
 #endif
 
   assert(system(command) == 0);

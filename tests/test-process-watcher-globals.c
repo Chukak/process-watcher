@@ -108,7 +108,10 @@ TEST_CASE(String, IntToString)
   }
   {
     char *number;
+#pragma warning(push)
+#pragma warning(suppress : 4310)
     itostr((int) 872346734534, &number);
+#pragma warning(pop)
     CHECK_STR_NE(number, "872346734534");
     free(number);
   }
