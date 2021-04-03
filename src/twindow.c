@@ -220,12 +220,51 @@ static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, i
     ftostr(proc_stat->Memory_peak_usage, &strmemory);
     strconcat(&hdr, 3, SAFE_PASS_VARGS("Memory peak: ", strmemory, "MB "));
     mvwaddstr(win->__p, cursY, loffsetX, hdr);
-    cursY++;
     free(hdr);
 
     attroff(COLOR_PAIR(DEFAULT_PAIR));
     free(strcpu);
     free(strmemory);
+  }
+  cursY += 2;
+  {
+    char *hdr = NULL; // header
+
+    char *strdisk_read = NULL, *strdisk_written = NULL, *strdisk_read_usage = NULL, *strdisk_write_usage,
+         *strdisk_read_peak_usage = NULL, *strdisk_write_peak_usage = NULL;
+
+    attron(COLOR_PAIR(DEFAULT_PAIR));
+
+    ftostr(proc_stat->Disk_read_mb_usage, &strdisk_read_usage);
+    ftostr(proc_stat->Disk_write_mb_usage, &strdisk_write_usage);
+    strconcat(&hdr, 6, SAFE_PASS_VARGS("Disk R/W: ", strdisk_read_usage, "MB/s ", "/ ", strdisk_write_usage, "MB/s "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursY++;
+    free(hdr);
+
+    ftostr(proc_stat->Disk_read_mb_peak_usage, &strdisk_read_peak_usage);
+    ftostr(proc_stat->Disk_write_mb_peak_usage, &strdisk_write_peak_usage);
+    strconcat(
+        &hdr,
+        6,
+        SAFE_PASS_VARGS("Disk peak R/W: ", strdisk_read_peak_usage, "MB/s ", "/ ", strdisk_write_peak_usage, "MB/s "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    cursY++;
+    free(hdr);
+
+    ulltostr(proc_stat->Disk_read_kb, &strdisk_read);
+    ulltostr(proc_stat->Disk_written_kb, &strdisk_written);
+    strconcat(&hdr, 6, SAFE_PASS_VARGS("Disk Read/Written: ", strdisk_read, "KB ", "/ ", strdisk_written, "KB "));
+    mvwaddstr(win->__p, cursY, loffsetX, hdr);
+    free(hdr);
+
+    attroff(COLOR_PAIR(DEFAULT_PAIR));
+    free(strdisk_read);
+    free(strdisk_written);
+    free(strdisk_read_usage);
+    free(strdisk_write_usage);
+    free(strdisk_read_peak_usage);
+    free(strdisk_write_peak_usage);
   }
 }
 

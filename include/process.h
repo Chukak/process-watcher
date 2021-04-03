@@ -16,7 +16,7 @@ EXTERNFUNC DECLFUNC int pid_by_name(const char* name);
 /**
  * @brief Process_stat
  * Stores the information about the running process from '/proc/[pid]' directory. Contains PID, the process name, state,
- * priority, user, CPU, memory and time usage.
+ * priority, user, CPU, memory and time usage, disk usage.
  * Also, this structure contains private fields with the '__' prefix. Do not use it.
  *
  * For more informations, check this page https://man7.org/linux/man-pages/man5/proc.5.html
@@ -37,19 +37,31 @@ typedef struct
 #ifdef __linux__
   int Uid; //! Uid
 #endif
-  char* Username; //! User name
-  bool Killed;
+  char* Username;                  //! User name
+  bool Killed;                     //! Process was killed
+  double Disk_read_mb_usage;       //! Disk read usage
+  double Disk_write_mb_usage;      //! Disk write usage
+  double Disk_read_mb_peak_usage;  //! Disk read peak usage
+  double Disk_write_mb_peak_usage; //! Disk write usage
+  unsigned long Disk_read_kb;      //! Disk read kb
+  unsigned long Disk_written_kb;   //! Disk written kb
+
   // private fields
-  unsigned long long __last_utime;
-  unsigned long long __last_stime;
-  unsigned long long __last_total;
-  unsigned long long __last_starttime;
+  unsigned long long __last_utime;     // user time
+  unsigned long long __last_stime;     // system time
+  unsigned long long __last_total;     // total time
+  unsigned long long __last_starttime; // start time (process)
 #ifdef __linux__
-  unsigned long long __last_btime;
+  unsigned long long __last_btime; // begin time (system)
 #endif
 #ifdef _WIN32
-  void* __phandle;
+  void* __phandle; // handle object (process)
 #endif
+  unsigned long long __last_read_bytes;    // read bytes
+  unsigned long long __last_written_bytes; // written bytes
+  unsigned long long __last_sread_calls;   // system read calls
+  unsigned long long __last_swrite_calls;  // system write calls
+  long long __last_monotime;               // monotime in ms
 } Process_stat;
 
 /**

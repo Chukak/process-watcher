@@ -37,6 +37,7 @@ static const char* PROC_DIRECTORY_PATH = "/proc";
 static const char* CMDLINE_FILENAME = "cmdline";
 static const char* EXE_FILENAME = "exe";
 static const char* STAT_FILENAME = "stat";
+static const char* IO_FILENAME = "io";
 
 static const int PAGESIZE_DIV_VALUE = 1024;
 #endif
@@ -60,7 +61,22 @@ static unsigned long long ft2ull(const FILETIME* ft)
 }
 #endif
 
-static double Cpu_usage_calculate(unsigned long long utime,
+static long long monotime_ms()
+{
+  long long t = 0;
+#ifdef __linux__
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+
+  t += ts.tv_sec * 1000;
+  t += ts.tv_nsec / 1000000;
+#elif _WIN32
+  // TODO: monotime in Windows
+#endif
+  return t;
+}
+
+static double CPU_usage_calculate(unsigned long long utime,
                                   unsigned long long last_utime,
                                   unsigned long long stime,
                                   unsigned long long last_stime,
@@ -189,6 +205,13 @@ Process_stat* Process_stat_init()
 #endif
   stat->Username = NULL;
   stat->Killed = false;
+  stat->Disk_read_mb_usage = 0.0;
+  stat->Disk_write_mb_usage = 0.0;
+  stat->Disk_read_mb_peak_usage = 0.0;
+  stat->Disk_write_mb_peak_usage = 0.0;
+  stat->Disk_read_kb = 0;
+  stat->Disk_written_kb = 0;
+
   // private
   stat->__last_utime = 0;
   stat->__last_stime = 0;
@@ -200,6 +223,12 @@ Process_stat* Process_stat_init()
 #ifdef _WIN32
   stat->__phandle = NULL;
 #endif
+  stat->__last_read_bytes = 0;
+  stat->__last_written_bytes = 0;
+  stat->__last_monotime = monotime_ms();
+  stat->__last_sread_calls = 0;
+  stat->__last_swrite_calls = 0;
+
   return stat;
 }
 
@@ -430,7 +459,7 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
           strconcat(errormsg, 3, SAFE_PASS_VARGS("Invalid data in the file '", statpath, "'"));
         } else {
           // calculate cpu usage
-          pstat->Cpu_usage = Cpu_usage_calculate(
+          pstat->Cpu_usage = CPU_usage_calculate(
               utimepid, pstat->__last_utime, stimepid, pstat->__last_stime, total, pstat->__last_total);
 
           pstat->Cpu_peak_usage = MAX(pstat->Cpu_peak_usage, pstat->Cpu_usage);
@@ -467,7 +496,7 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
     if (GetProcessTimes((HANDLE) pstat->__phandle, &begin_time, &end_time, &fsys_time, &fuser_time)) {
       unsigned long long sys_time = ft2ull(&fsys_time), user_time = ft2ull(&fuser_time);
       // TODO: maybe divide this value on num threads/cores
-      pstat->Cpu_usage = Cpu_usage_calculate(
+      pstat->Cpu_usage = CPU_usage_calculate(
           user_time, pstat->__last_utime, sys_time, pstat->__last_stime, total_time, pstat->__last_total);
 
       pstat->Cpu_peak_usage = MAX(pstat->Cpu_peak_usage, pstat->Cpu_usage);
@@ -495,7 +524,7 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
       // show real working size
       mem_usage_kb = (long int) (pmc.WorkingSetSize /* size in bytes */ / 1024);
       // but, windows task manager show it value
-      // mem_usage_kb = (long int)(pmc.PagefielUsage /* size in bytes */ / 1024);
+      // mem_usage_kb = (long int)(pmc.PagefileUsage /* size in bytes */ / 1024);
     }
 #endif
     pstat->Memory_usage = (double) mem_usage_kb / 1000 + (double) (mem_usage_kb % 1000) / 1000;
@@ -545,6 +574,69 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
 #endif
     sprintf(pstat->Time_usage, TIME_FORMAT, buf.tm_hour, buf.tm_min, buf.tm_sec);
     pstat->Time_usage[TIME_STR_LENGTH] = '\0';
+  }
+
+  if (success && !pstat->Killed) {
+#ifdef __linux__
+    char* pidiopath = NULL;
+    strconcat(&pidiopath,
+              5,
+              SAFE_PASS_VARGS(PROC_DIRECTORY_PATH, SYSTEM_PATH_SEPARATOR, str_pid, SYSTEM_PATH_SEPARATOR, IO_FILENAME));
+
+    char* pidiocache = NULL;
+    if (fgetall(pidiopath, &pidiocache) == -1) {
+      success = false;
+      strconcat(errormsg, 4, SAFE_PASS_VARGS("Unable to open file '", pidiopath, "': ", strerror(errno)));
+    } else {
+      unsigned long long rbytes, wbytes, syscr, syscw;
+      int args_set = sscanf(pidiocache,
+                            "rchar: %llu\n"
+                            "wchar: %llu\n"
+                            "syscr: %llu\n"
+                            "syscw: %llu\n",
+                            &rbytes,
+                            &wbytes,
+                            &syscr,
+                            &syscw);
+      if (args_set != 4) {
+        success = false;
+        strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to read data from '/proc/", str_pid, "/io': Invalid order."));
+      } else {
+        // ms, because we can refresh information every 1 ms.
+        double period_ms;
+        {
+          long long monotime_now = monotime_ms();
+          period_ms = (double) (monotime_now - pstat->__last_monotime);
+          pstat->__last_monotime = monotime_now;
+        }
+
+        pstat->Disk_read_kb = rbytes / 1000;
+        pstat->Disk_written_kb = wbytes / 1000;
+
+        // convert to mb/sec
+        pstat->Disk_read_mb_usage =
+            ((double) (rbytes - pstat->__last_read_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
+        pstat->Disk_write_mb_usage =
+            ((double) (wbytes - pstat->__last_written_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
+
+        // skip first update, when all values are zeros
+        if (pstat->__last_sread_calls > 0 && pstat->__last_swrite_calls > 0) {
+          pstat->Disk_read_mb_peak_usage = MAX(pstat->Disk_read_mb_peak_usage, pstat->Disk_read_mb_usage);
+          pstat->Disk_write_mb_peak_usage = MAX(pstat->Disk_write_mb_peak_usage, pstat->Disk_write_mb_usage);
+        }
+
+        pstat->__last_read_bytes = rbytes;
+        pstat->__last_written_bytes = wbytes;
+        pstat->__last_sread_calls = syscr;
+        pstat->__last_swrite_calls = syscw;
+      }
+
+      free(pidiopath);
+      free(pidiocache);
+    }
+#elif _WIN32
+    // TODO: process disk usage on Windows
+#endif
   }
 
   free(str_pid);

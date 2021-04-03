@@ -14,9 +14,9 @@
 #include <stdbool.h>
 
 #ifdef __linux__
-DECLFUNC static int get_real_pid(const char *name)
+static int get_real_pid(const char *name)
 #elif _WIN32
-DECLFUNC static int get_real_pid(const char *name, HANDLE *phandle)
+static int get_real_pid(const char *name, HANDLE *phandle)
 #endif
 {
   int pid = -1;
@@ -43,7 +43,7 @@ DECLFUNC static int get_real_pid(const char *name, HANDLE *phandle)
   return pid;
 }
 
-DECLFUNC static void compile_binary(const char *name, const char *code)
+static void compile_binary(const char *name, const char *code)
 {
   const char *srcName = "src.c";
   FILE *src = fopen(srcName, "w");
@@ -65,15 +65,15 @@ DECLFUNC static void compile_binary(const char *name, const char *code)
 #endif
 }
 
-DECLFUNC static void clean_temp_files()
+static void clean_temp_files()
 {
   remove("src.c");
 }
 
 #ifdef __linux__
-DECLFUNC static bool check_process(int pid)
+static bool check_process(int pid)
 #elif _WIN32
-DECLFUNC static bool check_process(HANDLE phandle)
+static bool check_process(HANDLE phandle)
 #endif
 {
 #ifdef __linux__
@@ -98,7 +98,10 @@ TEST_CASE(Process, GetProcessNameByPid)
                             "#define SLEEP(n) Sleep(n * 1000)\n"
                             "#endif\n"
                             "int main(){\n"
-                            "while(1){printf(\"Test message.\");SLEEP(1);}\n"
+                            "    while(1){\n"
+                            "        printf(\"Test message.\");\n"
+                            "        SLEEP(1);\n"
+                            "    }\n"
                             "}";
 #ifdef __linux__
   const char *binname = "testprocess";
@@ -153,23 +156,39 @@ TEST_CASE(Process, GetProcessNameByPid)
 TEST_CASE(Process, ProcessStatStructureUsage)
 {
   // compile test binary
-  const char *processCode = "#include <stdio.h>\n"
-                            "#ifdef __linux__\n"
-                            "#include <unistd.h>\n"
-                            "#define SLEEP(n) sleep(n)\n"
-                            "#elif _WIN32\n"
-                            "#include <Windows.h>\n"
-                            "#define SLEEP(n) Sleep(n * 1000)\n"
-                            "#endif\n"
-                            "#include <stdlib.h>\n"
-                            "int main(){\n"
-                            "char *buffer = malloc(8128 * sizeof(char));\n"
-                            "while(1){\n"
-                            "printf(\"Test message.\");SLEEP(1);\n"
-                            "for(long i=0; i < 180000000000; ++i);\n"
-                            "}\n"
-                            "free(buffer);\n"
-                            "}\n";
+  const char *processCode =
+      "#include <stdio.h>\n"
+      "#ifdef __linux__\n"
+      "#include <unistd.h>\n"
+      "#define SLEEP(n) sleep(n)\n"
+      "#define CALL_FUNC(f) f\n"
+      "#elif _WIN32\n"
+      "#include <Windows.h>\n"
+      "#define SLEEP(n) Sleep(n * 1000)\n"
+      "#define CALL_FUNC(func) _##func\n"
+      "#endif\n"
+      "#include <stdlib.h>\n"
+      "#include <fcntl.h>\n"
+      "#include <string.h>\n"
+      "int main(){\n"
+      "    char *buffer = malloc(8128 * sizeof(char));\n"
+      "    while(1){\n"
+      "        for(long i=0; i < 180; ++i){\n"
+      "            int fd = CALL_FUNC(open)(\"testlog.txt\", O_CREAT | O_APPEND | O_RDWR);\n"
+      "            const char *text = \"111111111111111111111111111111111111111111111111111111111\";\n"
+      "            CALL_FUNC(write)(fd, text, strlen(text));\n"
+      "            CALL_FUNC(close)(fd);\n"
+      "        }\n"
+      "        int fd = CALL_FUNC(open)(\"testlog.txt\", O_RDONLY);\n"
+      "        char buf[100];\n"
+      "        int bytes;"
+      "        while(bytes = CALL_FUNC(read)(fd, buf, 100)){\n"
+      "            printf(\"%s\", buf);\n"
+      "        }\n"
+      "        CALL_FUNC(close)(fd);"
+      "    }\n"
+      "    free(buffer);\n"
+      "}\n";
 #ifdef __linux__
   const char *binname = "testprocess";
 #elif _WIN32
@@ -233,6 +252,10 @@ TEST_CASE(Process, ProcessStatStructureUsage)
 #endif
     CHECK_NE(statobj->Username, NULL);
     CHECK_EQ(statobj->Killed, false);
+    CHECK_GT(statobj->Disk_read_mb_usage, 0.0);
+    CHECK_GT(statobj->Disk_write_mb_usage, 0.0);
+    CHECK_GT(statobj->Disk_read_kb, 0);
+    CHECK_GT(statobj->Disk_written_kb, 0);
 
     CHECK_EQ(Process_stat_kill(statobj, &errormsg), true);   // kill
     CHECK_EQ(Process_stat_update(statobj, &errormsg), true); // refresh
