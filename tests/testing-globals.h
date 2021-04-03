@@ -2,7 +2,7 @@
 #define __TESTING_GLOBALS_H
 
 // disable warnings
-#pragma warning(disable : 5105) // disable warnings
+#pragma warning(disable : 5105)
 #pragma warning(disable : 4067)
 
 #include <string.h>

@@ -29,7 +29,7 @@
  * @param dst The array to store result
  * @param count Number of strings for concatenation
  */
-DECLFUNC void strconcat(char** dst, int count, ...);
+EXTERNFUNC DECLFUNC void strconcat(char** dst, int count, ...);
 /**
  * @brief freadall
  * Reads all data from file. This functions dynamically allocates a char array for the data
@@ -48,7 +48,7 @@ DECLFUNC void strconcat(char** dst, int count, ...);
  * @param dst The array to store data
  * @return Number of bytes read
  */
-DECLFUNC long long freadall(const char* filename, char** dst);
+EXTERNFUNC DECLFUNC long long freadall(const char* filename, char** dst);
 /**
  * @brief itostr
  * Convert an integer number to string. This function dynamically allocates a char array for the store integer.
@@ -65,7 +65,7 @@ DECLFUNC long long freadall(const char* filename, char** dst);
  * @param n The number
  * @param dst The array to store number
  */
-DECLFUNC void itostr(int n, char** dst);
+EXTERNFUNC DECLFUNC void itostr(int n, char** dst);
 /**
  * @brief strreplace
  * Replaces substrings in the passed string. The specified number of substrings wil be replaced, if all substrings are
@@ -85,7 +85,7 @@ DECLFUNC void itostr(int n, char** dst);
  * @param repstr The replacement string
  * @param count Number of substring to replace
  */
-DECLFUNC void strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count)
+EXTERNFUNC DECLFUNC void strreplace(const char* src, char** dst, const char* substr, const char* repstr, int count)
     ATTR(nonnull(1, 3, 4));
 /**
  * @brief fgetall
@@ -105,7 +105,7 @@ DECLFUNC void strreplace(const char* src, char** dst, const char* substr, const 
  * @param dst The array to store data
  * @return Number of bytes read or -1 if the file was not opened
  */
-DECLFUNC long long fgetall(const char* filename, char** dst);
+EXTERNFUNC DECLFUNC long long fgetall(const char* filename, char** dst);
 /**
  * @brief ftostr
  * Convert a float number to string. This function dynamically allocates a char array for the store integer.
@@ -121,5 +121,5 @@ DECLFUNC long long fgetall(const char* filename, char** dst);
  * @param n
  * @param dst
  */
-DECLFUNC void ftostr(double n, char** dst);
+EXTERNFUNC DECLFUNC void ftostr(double n, char** dst);
 #endif // __IOUTILS_H

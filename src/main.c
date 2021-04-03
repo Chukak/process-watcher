@@ -25,7 +25,7 @@ DECLFUNC static void sighandler(int sig)
   Is_running = false;
 }
 
-DECLFUNC int main(int argc, char** argv)
+int main(int argc, char** argv)
 {
   UNUSED(argc);
   UNUSED(argv);

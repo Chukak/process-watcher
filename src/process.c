@@ -51,7 +51,7 @@ static const char* TIME_FORMAT = "%02d:%02d:%02d";
 static const int TIME_STR_LENGTH = 8;
 
 #ifdef _WIN32
-DECLFUNC static unsigned long long ft2ull(const FILETIME* ft)
+static unsigned long long ft2ull(const FILETIME* ft)
 {
   ULARGE_INTEGER i;
   i.LowPart = ft->dwLowDateTime;
@@ -60,12 +60,12 @@ DECLFUNC static unsigned long long ft2ull(const FILETIME* ft)
 }
 #endif
 
-DECLFUNC static double Cpu_usage_calculate(unsigned long long utime,
-                                           unsigned long long last_utime,
-                                           unsigned long long stime,
-                                           unsigned long long last_stime,
-                                           unsigned long long ttime,
-                                           unsigned long long last_ttime)
+static double Cpu_usage_calculate(unsigned long long utime,
+                                  unsigned long long last_utime,
+                                  unsigned long long stime,
+                                  unsigned long long last_stime,
+                                  unsigned long long ttime,
+                                  unsigned long long last_ttime)
 {
   double totalCoefficient = (double) (ttime - last_ttime);
   if (totalCoefficient != 0)
@@ -74,7 +74,7 @@ DECLFUNC static double Cpu_usage_calculate(unsigned long long utime,
   return 0.0;
 }
 
-DECLFUNC int pid_by_name(const char* name)
+int pid_by_name(const char* name)
 {
   int pid = -1;
 #ifdef __linux__
@@ -156,7 +156,7 @@ DECLFUNC int pid_by_name(const char* name)
   return pid;
 }
 
-DECLFUNC ATTR(warn_unused_result) Process_stat* Process_stat_init()
+Process_stat* Process_stat_init()
 {
   Process_stat* stat;
 
@@ -203,7 +203,7 @@ DECLFUNC ATTR(warn_unused_result) Process_stat* Process_stat_init()
   return stat;
 }
 
-DECLFUNC ATTR(nonnull(1, 2)) bool Process_stat_set_pid(Process_stat* stat, const char* processname, char** errormsg)
+bool Process_stat_set_pid(Process_stat* stat, const char* processname, char** errormsg)
 {
   stat->Process_name = malloc(strlen(processname) * sizeof(char) + 1);
   ASSERT(stat->Process_name != NULL, "stat->Process_name (char*) != NULL; malloc(...) returns NULL.");
@@ -231,7 +231,7 @@ DECLFUNC ATTR(nonnull(1, 2)) bool Process_stat_set_pid(Process_stat* stat, const
   return true;
 }
 
-DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** errormsg)
+bool Process_stat_update(Process_stat* pstat, char** errormsg)
 {
   char* str_pid = NULL;
   itostr(pstat->Pid, &str_pid);
@@ -552,7 +552,7 @@ DECLFUNC ATTR(nonnull(1)) bool Process_stat_update(Process_stat* pstat, char** e
   return success;
 }
 
-DECLFUNC ATTR(nonnull(1)) void Process_stat_free(Process_stat* stat)
+void Process_stat_free(Process_stat* stat)
 {
   free(stat->Process_name);
   free(stat->State_fullname);
@@ -563,7 +563,7 @@ DECLFUNC ATTR(nonnull(1)) void Process_stat_free(Process_stat* stat)
   free(stat);
 }
 
-DECLFUNC ATTR(nonnull(1)) bool Process_stat_kill(Process_stat* stat, char** errormsg)
+bool Process_stat_kill(Process_stat* stat, char** errormsg)
 {
   if (stat->Pid > 0) {
     char* str_pid = NULL;

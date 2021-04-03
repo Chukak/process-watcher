@@ -20,7 +20,7 @@ static const short int MENU_PAIR = 6;
 static const int MAX_CPU_VALUE_LENGTH =
     7; // max CPU value if XXX.XXX (example 100.121), 3 digits + dot + 3 digits as precision
 
-DECLFUNC ATTR(warn_unused_result) Window *Window_init()
+Window *Window_init()
 {
   Window *win = malloc(sizeof(Window));
   ASSERT(win != NULL, "win (Window*) != NULL; malloc(...) returns NULL.");
@@ -51,7 +51,7 @@ DECLFUNC ATTR(warn_unused_result) Window *Window_init()
   return win;
 }
 
-DECLFUNC static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int termX, int termY)
+static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
 
@@ -123,7 +123,7 @@ DECLFUNC static void draw_CPU_usage(Window *win, Process_stat *proc_stat, int te
   free(hdrcpu);
 }
 
-DECLFUNC static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, int termY)
+static void draw_process_info(Window *win, Process_stat *proc_stat, int termX, int termY)
 {
   UNUSED(termY);
   UNUSED(termX);
@@ -229,7 +229,7 @@ DECLFUNC static void draw_process_info(Window *win, Process_stat *proc_stat, int
   }
 }
 
-DECLFUNC static void draw_menu(Window *win, int termX, int termY)
+static void draw_menu(Window *win, int termX, int termY)
 {
   UNUSED(termX);
 
@@ -255,7 +255,7 @@ DECLFUNC static void draw_menu(Window *win, int termX, int termY)
   }
 }
 
-DECLFUNC ATTR(nonnull(1, 2)) bool Window_refresh(Window *win, Process_stat *proc_stat)
+bool Window_refresh(Window *win, Process_stat *proc_stat)
 {
   int x = COLS, y = LINES;
   {
@@ -292,7 +292,7 @@ DECLFUNC ATTR(nonnull(1, 2)) bool Window_refresh(Window *win, Process_stat *proc
   return true;
 }
 
-DECLFUNC ATTR(nonnull(1)) void Window_destroy(Window *win)
+void Window_destroy(Window *win)
 {
   endwin(); // remove ncurses WINDOW
 

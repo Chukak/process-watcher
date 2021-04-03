@@ -23,7 +23,7 @@ struct __Keys_thread
 #endif
 #ifdef _MSC_VER // TODO: support atomic
   volatile
-#elif __GNUC__ || __MINGW32__
+#elif defined __GNUC__ || defined __MINGW32__
   _Atomic
 #endif
       bool Running; //! Thread status
@@ -35,7 +35,7 @@ DECLFUNC static void *process_key(void *arg); // Forward declaration
 DECLFUNC static DWORD WINAPI process_key(LPVOID);
 #endif
 
-DECLFUNC ATTR(warn_unused_result) Keys *Keys_init()
+Keys *Keys_init()
 {
   Keys *k = malloc(sizeof(Keys));
   ASSERT(k != NULL, "k (Keys*) != NULL; malloc(...) returns NULL.");
@@ -48,14 +48,14 @@ DECLFUNC ATTR(warn_unused_result) Keys *Keys_init()
   return k;
 }
 
-DECLFUNC ATTR(nonnull(1, 2, 3)) void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
+void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
 {
   k->__stat = stat;
   k->__win = win;
   k->__thrd = malloc(sizeof(struct __Keys_thread));
 }
 
-DECLFUNC ATTR(nonnull(1)) void Keys_start_handle(Keys *k)
+void Keys_start_handle(Keys *k)
 {
   keypad(k->__win->__p, true);
 #ifdef __linux__
@@ -97,9 +97,9 @@ DECLFUNC ATTR(nonnull(1)) void Keys_destroy(Keys *k)
 }
 
 #ifdef __linux__
-DECLFUNC static void *process_key(void *arg)
+static void *process_key(void *arg)
 #elif _WIN32
-DECLFUNC static DWORD WINAPI process_key(LPVOID arg)
+static DWORD WINAPI process_key(LPVOID arg)
 #endif
 {
   Keys *k = (Keys *) arg;

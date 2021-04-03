@@ -21,7 +21,7 @@ DECLFUNC static void strrecreate(char **dst)
   *dst = tmp;
 }
 
-DECLFUNC static int strrealloc(char **dst, size_t size)
+static int strrealloc(char **dst, size_t size)
 {
   char *allocated = realloc(*dst, size * sizeof(char) + 1);
   if (!allocated)
@@ -30,7 +30,7 @@ DECLFUNC static int strrealloc(char **dst, size_t size)
   return 0;
 }
 
-DECLFUNC void strconcat(char **dst, int count, ...)
+void strconcat(char **dst, int count, ...)
 {
   size_t length = 0;
   char *array;
@@ -52,7 +52,7 @@ DECLFUNC void strconcat(char **dst, int count, ...)
   *dst = array;
 }
 
-DECLFUNC long long freadall(const char *filename, char **dst)
+long long freadall(const char *filename, char **dst)
 {
   long long bytes = 0, length = 0;
   FILE *file = fopen(filename, "r");
@@ -86,8 +86,6 @@ DECLFUNC long long freadall(const char *filename, char **dst)
   return bytes;
 }
 
-DECLFUNC
-ATTR(nonnull(1, 3, 4))
 void strreplace(const char *src, char **dst, const char *substr, const char *repstr, int count)
 {
   size_t sublen = strlen(substr), // substring length
@@ -136,7 +134,7 @@ void strreplace(const char *src, char **dst, const char *substr, const char *rep
   *dst = newstr;
 }
 
-DECLFUNC long long fgetall(const char *filename, char **dst)
+long long fgetall(const char *filename, char **dst)
 {
   long long bytes = 0;
   FILE *file = fopen(filename, "r");
@@ -168,7 +166,7 @@ typedef enum
   DOUBLE_T
 } __type_id;
 
-DECLFUNC static void tostr(void *p, char **dst, __type_id typeid)
+static void tostr(void *p, char **dst, __type_id typeid)
 {
   char *array;
   strrecreate(&array);
@@ -202,12 +200,12 @@ DECLFUNC static void tostr(void *p, char **dst, __type_id typeid)
   *dst = array;
 }
 
-DECLFUNC void itostr(int n, char **dst)
+void itostr(int n, char **dst)
 {
   tostr(&n, dst, INT_T);
 }
 
-DECLFUNC void ftostr(double n, char **dst)
+void ftostr(double n, char **dst)
 {
   tostr(&n, dst, DOUBLE_T);
 }
