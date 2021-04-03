@@ -188,3 +188,25 @@ TEST_CASE(String, DoubleToString)
     free(number);
   }
 }
+
+TEST_CASE(String, UnsignedLongLongToString)
+{
+  {
+    char *number;
+    ulltostr(25, &number);
+    CHECK_STR_EQ(number, "25");
+    free(number);
+  }
+  {
+    char *number;
+    ulltostr(1234567890000000000, &number);
+    CHECK_STR_EQ(number, "1234567890000000000");
+    free(number);
+  }
+  {
+    char *number;
+    ulltostr(0, &number);
+    CHECK_STR_EQ(number, "0");
+    free(number);
+  }
+}

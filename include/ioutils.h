@@ -118,8 +118,25 @@ EXTERNFUNC DECLFUNC long long fgetall(const char* filename, char** dst);
  * // ...
  * free(dst);
  * @endcode
- * @param n
- * @param dst
+ * @param n The number
+ * @param dst The array to store number
  */
 EXTERNFUNC DECLFUNC void ftostr(double n, char** dst);
+/**
+ * @brief ulltostr
+ * Convert an unsigned long long number to string. This function dynamically allocates a char array for the store
+ * integer.
+ *
+ * If dynamic allocate memory is not possible, this function do nothing.
+ *
+ * @code
+ * char *dst = NULL;
+ * ulltostr(12345678, &dst);
+ * // ...
+ * free(dst);
+ * @endcode
+ * @param n The number
+ * @param dst The array to store number
+ */
+EXTERNFUNC DECLFUNC void ulltostr(unsigned long long n, char** dst);
 #endif // __IOUTILS_H

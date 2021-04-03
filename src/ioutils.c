@@ -163,35 +163,45 @@ long long fgetall(const char *filename, char **dst)
 typedef enum
 {
   INT_T,
-  DOUBLE_T
+  DOUBLE_T,
+  UNSIGLED_LONG_LONG_T
 } __type_id;
 
 static void tostr(void *p, char **dst, __type_id typeid)
 {
   char *array;
   strrecreate(&array);
-  size_t length;
+  long long int length;
   switch (typeid) {
   case INT_T:
-    length = (size_t) snprintf(NULL, 0, "%d", *((int *) p));
+    length = snprintf(NULL, 0, "%d", *((int *) p));
     break;
   case DOUBLE_T:
-    length = (size_t) snprintf(NULL, 0, "%.3f", *((double *) p));
+    length = snprintf(NULL, 0, "%.3f", *((double *) p));
+    break;
+  case UNSIGLED_LONG_LONG_T:
+    length = snprintf(NULL, 0, "%llu", *((unsigned long long *) p));
     break;
   default:
     return;
   }
 
-  if (strrealloc(&array, length) != 0)
+  if (length < 0)
+    return;
+
+  if (strrealloc(&array, (size_t) length) != 0)
     return;
   ++length; // because, array has the null terminated character
 
   switch (typeid) {
   case INT_T:
-    snprintf(array, length, "%d", *((int *) p));
+    snprintf(array, (size_t) length, "%d", *((int *) p));
     break;
   case DOUBLE_T:
-    snprintf(array, length, "%.3f", *((double *) p));
+    snprintf(array, (size_t) length, "%.3f", *((double *) p));
+    break;
+  case UNSIGLED_LONG_LONG_T:
+    snprintf(array, (size_t) length, "%llu", *((unsigned long long *) p));
     break;
   default:
     break;
@@ -208,4 +218,9 @@ void itostr(int n, char **dst)
 void ftostr(double n, char **dst)
 {
   tostr(&n, dst, DOUBLE_T);
+}
+
+void ulltostr(unsigned long long n, char **dst)
+{
+  tostr(&n, dst, UNSIGLED_LONG_LONG_T);
 }
