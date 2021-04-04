@@ -99,6 +99,16 @@ static double CPU_usage_calculate(unsigned long long utime,
   return 0.0;
 }
 
+static bool is_finite(double x)
+{
+#if defined __GNUC__ || defined __MINGW32__
+  return finite(x) != 0;
+#elif _MSC_VER
+  static double inf = 1.0 / 0.0;
+  return x == x && x != inf && x != -inf;
+#endif
+}
+
 int pid_by_name(const char* name)
 {
   int pid = -1;
@@ -645,12 +655,12 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
       // convert to mb/sec
       pstat->Disk_read_mb_usage =
           ((double) (rbytes - pstat->__last_read_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
-      if (finite(pstat->Disk_read_mb_usage) == 0)
+      if (!is_finite(pstat->Disk_read_mb_usage))
         pstat->Disk_read_mb_usage = 0.0;
 
       pstat->Disk_write_mb_usage =
           ((double) (wbytes - pstat->__last_written_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
-      if (finite(pstat->Disk_write_mb_usage) == 0)
+      if (!is_finite(pstat->Disk_write_mb_usage))
         pstat->Disk_write_mb_usage = 0.0;
 
       // skip first update, when all values are zeros
