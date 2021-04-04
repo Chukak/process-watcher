@@ -180,7 +180,14 @@ static void tostr(void *p, char **dst, __type_id typeid)
     length = snprintf(NULL, 0, "%.3f", *((double *) p));
     break;
   case UNSIGLED_LONG_LONG_T:
-    length = snprintf(NULL, 0, "%llu", *((unsigned long long *) p));
+    length = snprintf(NULL,
+                      0,
+#ifdef _WIN32
+                      "%I64u",
+#else
+                      "%llu",
+#endif
+                      *((unsigned long long *) p));
     break;
   default:
     return;
@@ -201,7 +208,14 @@ static void tostr(void *p, char **dst, __type_id typeid)
     snprintf(array, (size_t) length, "%.3f", *((double *) p));
     break;
   case UNSIGLED_LONG_LONG_T:
-    snprintf(array, (size_t) length, "%llu", *((unsigned long long *) p));
+    snprintf(array,
+             (size_t) length,
+#ifdef _WIN32
+             "%I64u",
+#else
+             "%llu",
+#endif
+             *((unsigned long long *) p));
     break;
   default:
     break;

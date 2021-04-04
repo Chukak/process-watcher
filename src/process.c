@@ -71,7 +71,16 @@ static long long monotime_ms()
   t += ts.tv_sec * 1000;
   t += ts.tv_nsec / 1000000;
 #elif _WIN32
-  // TODO: monotime in Windows
+  static LARGE_INTEGER freq; // cached frequency
+  if (freq.QuadPart == 0)
+    QueryPerformanceFrequency(&freq);
+  LARGE_INTEGER ts;
+  QueryPerformanceCounter(&ts);
+
+  if (freq.QuadPart != 0)
+    ts.QuadPart /= freq.QuadPart;
+
+  t += ts.QuadPart * 1000;
 #endif
   return t;
 }
@@ -577,6 +586,10 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
   }
 
   if (success && !pstat->Killed) {
+    unsigned long long rbytes = 0, // read bytes
+        wbytes = 0,                // write bytes
+        sysrcalls = 0,             // system read calls count
+        syswcalls = 0;             // system write calls count
 #ifdef __linux__
     char* pidiopath = NULL;
     strconcat(&pidiopath,
@@ -588,7 +601,6 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
       success = false;
       strconcat(errormsg, 4, SAFE_PASS_VARGS("Unable to open file '", pidiopath, "': ", strerror(errno)));
     } else {
-      unsigned long long rbytes, wbytes, syscr, syscw;
       int args_set = sscanf(pidiocache,
                             "rchar: %llu\n"
                             "wchar: %llu\n"
@@ -596,46 +608,66 @@ bool Process_stat_update(Process_stat* pstat, char** errormsg)
                             "syscw: %llu\n",
                             &rbytes,
                             &wbytes,
-                            &syscr,
-                            &syscw);
+                            &sysrcalls,
+                            &syswcalls);
       if (args_set != 4) {
         success = false;
         strconcat(errormsg, 3, SAFE_PASS_VARGS("Unable to read data from '/proc/", str_pid, "/io': Invalid order."));
-      } else {
-        // ms, because we can refresh information every 1 ms.
-        double period_ms;
-        {
-          long long monotime_now = monotime_ms();
-          period_ms = (double) (monotime_now - pstat->__last_monotime);
-          pstat->__last_monotime = monotime_now;
-        }
-
-        pstat->Disk_read_kb = rbytes / 1000;
-        pstat->Disk_written_kb = wbytes / 1000;
-
-        // convert to mb/sec
-        pstat->Disk_read_mb_usage =
-            ((double) (rbytes - pstat->__last_read_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
-        pstat->Disk_write_mb_usage =
-            ((double) (wbytes - pstat->__last_written_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
-
-        // skip first update, when all values are zeros
-        if (pstat->__last_sread_calls > 0 && pstat->__last_swrite_calls > 0) {
-          pstat->Disk_read_mb_peak_usage = MAX(pstat->Disk_read_mb_peak_usage, pstat->Disk_read_mb_usage);
-          pstat->Disk_write_mb_peak_usage = MAX(pstat->Disk_write_mb_peak_usage, pstat->Disk_write_mb_usage);
-        }
-
-        pstat->__last_read_bytes = rbytes;
-        pstat->__last_written_bytes = wbytes;
-        pstat->__last_sread_calls = syscr;
-        pstat->__last_swrite_calls = syscw;
       }
-
-      free(pidiopath);
-      free(pidiocache);
     }
 #elif _WIN32
-    // TODO: process disk usage on Windows
+    IO_COUNTERS iocount;
+    if (!GetProcessIoCounters(pstat->__phandle, &iocount)) {
+      success = false;
+      strconcat(
+          errormsg,
+          5,
+          SAFE_PASS_VARGS("Unable to get I/O information for process: ", pstat->Process_name, " (", str_pid, ")."));
+    } else {
+      rbytes = iocount.ReadTransferCount;
+      wbytes = iocount.WriteTransferCount;
+      sysrcalls = iocount.ReadOperationCount;
+      syswcalls = iocount.WriteOperationCount;
+    }
+#endif
+    if (success) {
+      // ms, because we can refresh information every 1 ms.
+      double period_ms;
+      {
+        long long monotime_now = monotime_ms();
+        period_ms = (double) (monotime_now - pstat->__last_monotime);
+        pstat->__last_monotime = monotime_now;
+      }
+
+      pstat->Disk_read_kb = rbytes / 1000;
+      pstat->Disk_written_kb = wbytes / 1000;
+
+      // convert to mb/sec
+      pstat->Disk_read_mb_usage =
+          ((double) (rbytes - pstat->__last_read_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
+      if (finite(pstat->Disk_read_mb_usage) == 0)
+        pstat->Disk_read_mb_usage = 0.0;
+
+      pstat->Disk_write_mb_usage =
+          ((double) (wbytes - pstat->__last_written_bytes) / 1000 / 1000) / (double) (period_ms / 1000);
+      if (finite(pstat->Disk_write_mb_usage) == 0)
+        pstat->Disk_write_mb_usage = 0.0;
+
+      // skip first update, when all values are zeros
+      // TODO: maybe we can find a better desicion
+      if (pstat->__last_sread_calls > 0 && pstat->__last_swrite_calls > 0) {
+        pstat->Disk_read_mb_peak_usage = MAX(pstat->Disk_read_mb_peak_usage, pstat->Disk_read_mb_usage);
+        pstat->Disk_write_mb_peak_usage = MAX(pstat->Disk_write_mb_peak_usage, pstat->Disk_write_mb_usage);
+      }
+
+      pstat->__last_read_bytes = rbytes;
+      pstat->__last_written_bytes = wbytes;
+      pstat->__last_sread_calls = sysrcalls;
+      pstat->__last_swrite_calls = syswcalls;
+    }
+#ifdef __linux__
+    free(pidiopath);
+    free(pidiocache);
 #endif
   }
 

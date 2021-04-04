@@ -37,14 +37,14 @@ typedef struct
 #ifdef __linux__
   int Uid; //! Uid
 #endif
-  char* Username;                  //! User name
-  bool Killed;                     //! Process was killed
-  double Disk_read_mb_usage;       //! Disk read usage
-  double Disk_write_mb_usage;      //! Disk write usage
-  double Disk_read_mb_peak_usage;  //! Disk read peak usage
-  double Disk_write_mb_peak_usage; //! Disk write usage
-  unsigned long Disk_read_kb;      //! Disk read kb
-  unsigned long Disk_written_kb;   //! Disk written kb
+  char* Username;                     //! User name
+  bool Killed;                        //! Process was killed
+  double Disk_read_mb_usage;          //! Disk read usage
+  double Disk_write_mb_usage;         //! Disk write usage
+  double Disk_read_mb_peak_usage;     //! Disk read peak usage
+  double Disk_write_mb_peak_usage;    //! Disk write usage
+  unsigned long long Disk_read_kb;    //! Disk read kb
+  unsigned long long Disk_written_kb; //! Disk written kb
 
   // private fields
   unsigned long long __last_utime;     // user time

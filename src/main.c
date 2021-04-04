@@ -51,6 +51,7 @@ int main(int argc, char** argv)
         if (!Window_refresh(mainwin, stat))
           break;
 
+          // TODO: instead of Sleep use condition_variable alternatives
 #ifdef __linux__
         usleep((unsigned int) (args->Refresh_timeout_ms * 1000)); // usleep takes microseconds
 #elif _WIN32
