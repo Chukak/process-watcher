@@ -45,3 +45,4 @@
 out
 CMakeSettings.json
 build
+.vscode
