@@ -29,10 +29,16 @@ struct __Keys_thread
       bool Running; //! Thread status
 };
 
+struct __Keys_handler
+{
+  Keys_handler Handler;
+  void *Arg;
+};
+
 #ifdef __linux__
 DECLFUNC static void *process_key(void *arg); // Forward declaration
 #elif _WIN32
-DECLFUNC static DWORD WINAPI process_key(LPVOID);
+DECLFUNC static DWORD WINAPI process_key(LPVOID arg);
 #endif
 
 Keys *Keys_init()
@@ -45,6 +51,9 @@ Keys *Keys_init()
   k->__stat = NULL;
   k->__win = NULL;
   k->__thrd = NULL;
+
+  k->__on_start = NULL;
+  k->__on_exit = NULL;
   return k;
 }
 
@@ -57,7 +66,9 @@ void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
 
 void Keys_start_handle(Keys *k)
 {
-  keypad(k->__win->__p, true);
+  if (k->__on_start)
+    k->__on_start->Handler(k->__on_start->Arg);
+
 #ifdef __linux__
   pthread_mutexattr_init(&(k->__thrd->Mut_attrs));
   pthread_mutexattr_settype(&(k->__thrd->Mut_attrs), PTHREAD_MUTEX_NORMAL);
@@ -92,6 +103,9 @@ DECLFUNC ATTR(nonnull(1)) void Keys_destroy(Keys *k)
 #endif
 
   free(k->__thrd);
+
+  free(k->__on_start);
+  free(k->__on_exit);
 
   free(k);
 }
@@ -141,21 +155,37 @@ static DWORD WINAPI process_key(LPVOID arg)
     }
     case KEY_F(4) /* F4 */:
       raise(SIGINT); // raise SIGINT and exit
+      if (k->__on_exit)
+        k->__on_exit->Handler(k->__on_exit->Arg);
 #ifdef __linux__
       return (void *) 0;
-#elif _WIN32
-      return TRUE;
-#endif
     }
-#ifdef __linux__
     usleep(80 * 1000 /* 80 ms */);
-#elif _WIN32
-    Sleep(80 /* 80 ms */);
-#endif
   }
-#ifdef __linux__
   return (void *) 0;
 #elif _WIN32
+      return TRUE;
+    }
+    Sleep(80 /* 80 ms */);
+  }
   return TRUE;
 #endif
+}
+
+void Keys_set_handler(Keys *k, Keys_handler_attr attr, Keys_handler f, void *arg)
+{
+  struct __Keys_handler *kh;
+  switch (attr) {
+  case KEYS_ON_EXIT:
+    k->__on_exit = malloc(sizeof(struct __Keys_handler));
+    kh = k->__on_exit;
+    break;
+  case KEYS_ON_START:
+    k->__on_start = malloc(sizeof(struct __Keys_handler));
+    kh = k->__on_start;
+    break;
+  }
+
+  kh->Handler = f;
+  kh->Arg = arg;
 }

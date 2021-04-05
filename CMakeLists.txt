@@ -67,11 +67,13 @@ set(SOURCE_FILES
     src/process.c
     src/twindow.c
     src/cmdargs.c
-    src/keys.c)
+    src/keys.c
+    src/multithread.c)
 set(PRIVATE_HEADER_FILES
     src/twindow.h
     src/cmdargs.h
-    src/keys.h)
+    src/keys.h
+    src/multithread.h)
 set(PUBLIC_HEADER_FILES
     include/process.h
     include/props.h
