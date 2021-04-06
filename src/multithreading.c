@@ -1,9 +1,10 @@
-#include "multithread.h"
+#include "multithreading.h"
 
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
 
+#ifdef __linux__
 static void set_timeout_from_now(long int offsetms, time_t *sec, long *nsec)
 {
   struct timespec now;
@@ -15,6 +16,7 @@ static void set_timeout_from_now(long int offsetms, time_t *sec, long *nsec)
   *sec += *nsec / (1000000 * 1000); // add sec, if nanosec > (1e9)
   *nsec %= (1000000 * 1000);
 }
+#endif
 
 Condition_variable *Condition_variable_init()
 {
@@ -26,30 +28,31 @@ Condition_variable *Condition_variable_init()
     pthread_condattr_t cvattr;
     pthread_condattr_init(&cvattr);
     pthread_condattr_setclock(&cvattr, CLOCK_REALTIME);
-    pthread_cond_init(&(cv->__cv), &cvattr);
+    pthread_cond_init(&cv->__cv, &cvattr);
   }
   cv->__ts = NULL;
   {
     pthread_mutexattr_t mutattr;
     pthread_mutexattr_init(&mutattr);
     pthread_mutexattr_settype(&mutattr, PTHREAD_MUTEX_NORMAL);
-    pthread_mutex_init(&(cv->__mut), &mutattr);
+    pthread_mutex_init(&cv->__mut, &mutattr);
   }
 #elif _WIN32
-  // TODO:
+  InitializeConditionVariable(&cv->__cv);
+
+  InitializeSRWLock(&cv->__lck);
 #endif
   return cv;
 }
 
 void Condition_variable_set_time(Condition_variable *cv, long int ms)
 {
-  if (!cv->__ts) {
 #ifdef __linux__
+  if (!cv->__ts)
     cv->__ts = malloc(sizeof(struct timespec));
-#elif _WIN32
-    // TODO:
+  ASSERT(cv->__ts != NULL, "cv->__ts (timespec*) != NULL; malloc(...) returns NULL.");
 #endif
-  }
+
   cv->Timeout_ms = ms;
 }
 
@@ -67,7 +70,11 @@ void Condition_variable_wait(Condition_variable *cv)
   } else
     pthread_cond_wait(&cv->__cv, &cv->__mut);
 #elif _WIN32
-  // TODO:
+  AcquireSRWLockExclusive(&cv->__lck);
+  if (!SleepConditionVariableSRW(&cv->__cv, &cv->__lck, (DWORD) cv->Timeout_ms, 0)) {
+    // TODO: error msg
+  }
+  ReleaseSRWLockExclusive(&cv->__lck);
 #endif
 }
 
@@ -76,7 +83,7 @@ void Condition_variable_signal(Condition_variable *cv)
 #ifdef __linux__
   pthread_cond_signal(&cv->__cv);
 #elif _WIN32
-  // TODO:
+  WakeConditionVariable(&cv->__cv);
 #endif
 }
 
@@ -87,8 +94,6 @@ void Condition_variable_destroy(Condition_variable *cv)
 
   pthread_mutex_destroy(&cv->__mut);
   pthread_cond_destroy(&cv->__cv);
-#elif _WIN32
-  // TODO:
 #endif
   free(cv);
 }

@@ -6,7 +6,7 @@
 #ifdef __linux__
 #include <pthread.h>
 #elif _WIN32
-// TODO:
+#include <Windows.h>
 #endif
 
 /**
@@ -18,12 +18,13 @@ typedef struct
 {
   long int Timeout_ms; //! waiting timeout
   // private fields
+#ifdef __linux__
   pthread_cond_t __cv;   // condition variable
   pthread_mutex_t __mut; // mutex
-#ifdef __linux__
   struct timespec *__ts; // absolute time with timeout
 #elif _WIN32
-  // TODO:
+  CONDITION_VARIABLE __cv; // condition variable
+  SRWLOCK __lck;           // lock
 #endif
 } Condition_variable;
 

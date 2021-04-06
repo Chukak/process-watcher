@@ -3,7 +3,6 @@
 
 #include "twindow.h"
 #include "process.h"
-#include "multithread.h"
 
 struct __Keys_thread; // Forward declaration
 

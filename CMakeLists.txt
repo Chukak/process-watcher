@@ -68,12 +68,12 @@ set(SOURCE_FILES
     src/twindow.c
     src/cmdargs.c
     src/keys.c
-    src/multithread.c)
+    src/multithreading.c)
 set(PRIVATE_HEADER_FILES
     src/twindow.h
     src/cmdargs.h
     src/keys.h
-    src/multithread.h)
+    src/multithreading.h)
 set(PUBLIC_HEADER_FILES
     include/process.h
     include/props.h
@@ -83,6 +83,11 @@ set(C_PROJECT_LINK_FLAGS
     )
 set(C_PROJECT_COMPILE_DEFINITIONS
     -D__BINARY_NAME=\"${PROJECT_NAME}\")
+
+if(WIN32)
+    list(APPEND C_PROJECT_COMPILE_DEFINITIONS 
+        -D_WIN32_WINNT=0x0601) # Windows 7 and later
+endif()
 
 if (CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     set(C_PROJECT_COMPILE_FLAGS

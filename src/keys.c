@@ -62,6 +62,7 @@ void Keys_set_args(Keys *k, Process_stat *stat, Window *win)
   k->__stat = stat;
   k->__win = win;
   k->__thrd = malloc(sizeof(struct __Keys_thread));
+  ASSERT(k->__thrd != NULL, "k-<__thrd (__Keys_thread*) != NULL; malloc(...) returns NULL.");
 }
 
 void Keys_start_handle(Keys *k)
@@ -174,18 +175,21 @@ static DWORD WINAPI process_key(LPVOID arg)
 
 void Keys_set_handler(Keys *k, Keys_handler_attr attr, Keys_handler f, void *arg)
 {
-  struct __Keys_handler *kh;
+  struct __Keys_handler *kh = NULL;
   switch (attr) {
   case KEYS_ON_EXIT:
     k->__on_exit = malloc(sizeof(struct __Keys_handler));
+    ASSERT(k->__on_exit != NULL, "k->__on_exit (__Keys_handler*) != NULL; malloc(...) returns NULL.");
     kh = k->__on_exit;
     break;
   case KEYS_ON_START:
     k->__on_start = malloc(sizeof(struct __Keys_handler));
+    ASSERT(k->__on_start != NULL, "k->__on_start (__Keys_handler*) != NULL; malloc(...) returns NULL.");
     kh = k->__on_start;
     break;
   }
-
-  kh->Handler = f;
-  kh->Arg = arg;
+  if (kh) {
+    kh->Handler = f;
+    kh->Arg = arg;
+  }
 }

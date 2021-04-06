@@ -3,7 +3,7 @@
 #include "process.h"
 #include "keys.h"
 #include "cmdargs.h"
-#include "multithread.h"
+#include "multithreading.h"
 
 #ifdef __linux__
 #include <unistd.h>
